@@ -1,0 +1,55 @@
+const TG_API = "https://api.telegram.org";
+
+function token() {
+  const t = process.env.TELEGRAM_BOT_TOKEN;
+  if (!t) throw new Error("TELEGRAM_BOT_TOKEN is not configured");
+  return t;
+}
+
+export async function tg(method: string, payload: unknown) {
+  const res = await fetch(`${TG_API}/bot${token()}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || (data && data.ok === false)) {
+    console.error(`[telegram] ${method} failed`, res.status, data);
+  }
+  return data as { ok: boolean; result?: unknown; description?: string };
+}
+
+export async function tgSendMultipart(
+  method: string,
+  fields: Record<string, string | number>,
+  file: { field: string; filename: string; bytes: Uint8Array; contentType: string },
+) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
+  fd.append(
+    file.field,
+    new Blob([file.bytes as BlobPart], { type: file.contentType }),
+    file.filename,
+  );
+  const res = await fetch(`${TG_API}/bot${token()}/${method}`, {
+    method: "POST",
+    body: fd,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || (data && data.ok === false)) {
+    console.error(`[telegram] ${method} multipart failed`, res.status, data);
+  }
+  return data as { ok: boolean; result?: unknown; description?: string };
+}
+
+export async function downloadTelegramFile(file_id: string): Promise<{ bytes: Uint8Array; mime: string } | null> {
+  const info = await tg("getFile", { file_id });
+  // @ts-expect-error dynamic
+  const path = info?.result?.file_path as string | undefined;
+  if (!path) return null;
+  const res = await fetch(`${TG_API}/file/bot${token()}/${path}`);
+  if (!res.ok) return null;
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const mime = res.headers.get("content-type") || "application/octet-stream";
+  return { bytes, mime };
+}

@@ -1,0 +1,310 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  deleteProduct,
+  listCategoriesForProducts,
+  listProducts,
+  saveProduct,
+} from "@/lib/products.functions";
+
+export const Route = createFileRoute("/admin/products")({
+  component: ProductsPage,
+});
+
+type Img = { id?: string; image_path: string; sort_order: number };
+type Product = {
+  id?: string;
+  category_id: string | null;
+  name: string;
+  description: string;
+  keywords: string;
+  price: number;
+  currency: string;
+  is_active: boolean;
+  sort_order: number;
+  file_path: string | null;
+  file_name: string | null;
+  product_images?: Img[];
+};
+
+const empty: Product = {
+  category_id: null,
+  name: "",
+  description: "",
+  keywords: "",
+  price: 0,
+  currency: "KZT",
+  is_active: true,
+  sort_order: 0,
+  file_path: null,
+  file_name: null,
+  product_images: [],
+};
+
+async function uploadFile(file: File, bucket: "product-images" | "product-files") {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("bucket", bucket);
+  const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()) as { path: string; name: string };
+}
+
+function ProductsPage() {
+  const qc = useQueryClient();
+  const products = useQuery({ queryKey: ["products"], queryFn: () => listProducts() });
+  const cats = useQuery({ queryKey: ["cats-flat"], queryFn: () => listCategoriesForProducts() });
+  const list = (products.data ?? []) as any[];
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [images, setImages] = useState<Img[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  function startNew() {
+    setEditing({ ...empty });
+    setImages([]);
+  }
+  function startEdit(p: any) {
+    setEditing({
+      id: p.id,
+      category_id: p.category_id,
+      name: p.name,
+      description: p.description ?? "",
+      keywords: p.keywords ?? "",
+      price: Number(p.price),
+      currency: p.currency,
+      is_active: p.is_active,
+      sort_order: p.sort_order ?? 0,
+      file_path: p.file_path,
+      file_name: p.file_name,
+    });
+    const imgs = (p.product_images ?? []).slice().sort((a: Img, b: Img) => a.sort_order - b.sort_order);
+    setImages(imgs);
+  }
+
+  async function onImagesChange(files: FileList | null) {
+    if (!files) return;
+    const uploaded: Img[] = [];
+    for (const f of Array.from(files)) {
+      const r = await uploadFile(f, "product-images");
+      uploaded.push({ image_path: r.path, sort_order: images.length + uploaded.length });
+    }
+    setImages([...images, ...uploaded]);
+  }
+
+  async function onFileChange(file: File | null) {
+    if (!file || !editing) return;
+    const r = await uploadFile(file, "product-files");
+    setEditing({ ...editing, file_path: r.path, file_name: r.name });
+  }
+
+  async function onSave() {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      await saveProduct({
+        data: {
+          id: editing.id,
+          category_id: editing.category_id,
+          name: editing.name,
+          description: editing.description,
+          keywords: editing.keywords,
+          price: Number(editing.price),
+          currency: editing.currency,
+          is_active: editing.is_active,
+          sort_order: Number(editing.sort_order),
+          file_path: editing.file_path,
+          file_name: editing.file_name,
+          image_paths: images.map((i) => i.image_path),
+        },
+      });
+      setEditing(null);
+      setImages([]);
+      qc.invalidateQueries({ queryKey: ["products"] });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function onDelete(id: string) {
+    if (!confirm("Удалить товар?")) return;
+    await deleteProduct({ data: { id } });
+    qc.invalidateQueries({ queryKey: ["products"] });
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Товары</h1>
+        {!editing && <Button onClick={startNew}>+ Новый товар</Button>}
+      </div>
+
+      {editing ? (
+        <div className="bg-card border rounded-lg p-4 space-y-4">
+          <h2 className="font-medium">{editing.id ? "Редактирование товара" : "Новый товар"}</h2>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Название</Label>
+              <Input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Категория</Label>
+              <select
+                className="w-full border rounded-md h-9 px-2 bg-background"
+                value={editing.category_id ?? ""}
+                onChange={(e) =>
+                  setEditing({ ...editing, category_id: e.target.value || null })
+                }
+              >
+                <option value="">— Без категории —</option>
+                {(cats.data ?? []).map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Описание</Label>
+            <Textarea
+              rows={4}
+              value={editing.description}
+              onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Ключевые слова (для поиска, через пробел или запятую)</Label>
+            <Input
+              value={editing.keywords}
+              onChange={(e) => setEditing({ ...editing, keywords: e.target.value })}
+            />
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Цена</Label>
+              <Input
+                type="number"
+                value={editing.price}
+                onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Валюта</Label>
+              <Input
+                value={editing.currency}
+                onChange={(e) => setEditing({ ...editing, currency: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Порядок</Label>
+              <Input
+                type="number"
+                value={editing.sort_order}
+                onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Фото (можно несколько)</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => onImagesChange(e.target.files)}
+            />
+            <div className="flex flex-wrap gap-2 mt-2">
+              {images.map((im, idx) => (
+                <div key={im.image_path} className="relative">
+                  <img
+                    src={`/api/public/img/${im.image_path}`}
+                    alt=""
+                    className="w-20 h-20 object-cover rounded border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Файл товара (PDF / архив / любой)</Label>
+            <Input type="file" onChange={(e) => onFileChange(e.target.files?.[0] ?? null)} />
+            {editing.file_name && (
+              <p className="text-sm text-muted-foreground">📎 {editing.file_name}</p>
+            )}
+          </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={editing.is_active}
+              onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+            />
+            Показывать в боте
+          </label>
+
+          <div className="flex gap-2">
+            <Button onClick={onSave} disabled={saving}>
+              {saving ? "Сохранение..." : "Сохранить"}
+            </Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              Отмена
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-card border rounded-lg divide-y">
+          {list.length === 0 && (
+            <div className="p-4 text-sm text-muted-foreground">Пока нет товаров.</div>
+          )}
+          {list.map((p) => (
+            <div key={p.id} className="p-3 flex items-center gap-3">
+              {p.product_images?.[0] ? (
+                <img
+                  src={`/api/public/img/${p.product_images[0].image_path}`}
+                  className="w-12 h-12 object-cover rounded border shrink-0"
+                  alt=""
+                />
+              ) : (
+                <div className="w-12 h-12 bg-muted rounded shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">
+                  {p.name} {!p.is_active && <span className="text-xs text-muted-foreground">(скрыт)</span>}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {p.categories?.name || "без категории"} · {p.price} {p.currency}
+                  {!p.file_path && <span className="text-destructive"> · нет файла</span>}
+                </div>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button size="sm" variant="outline" onClick={() => startEdit(p)}>
+                  Изм.
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => onDelete(p.id)}>
+                  Удал.
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
