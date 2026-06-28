@@ -7,6 +7,7 @@ import { Label } from "@/components-ui/label";
 import { Textarea } from "@/components-ui/textarea";
 import {
   deleteProduct,
+  getSignedUploadUrl,
   listCategoriesForProducts,
   listProducts,
   saveProduct,
@@ -60,13 +61,7 @@ const empty: Product = {
 
 async function uploadFile(file: File, bucket: "product-images" | "product-files") {
   // 1. Получаем одноразовую ссылку для прямой загрузки от сервера
-  const resUrl = await fetch("/api/admin/signed-url", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ bucket, filename: file.name }),
-  });
-  if (!resUrl.ok) throw new Error(await resUrl.text());
-  const { path, name, signedUrl } = await resUrl.json();
+  const { path, name, signedUrl } = await getSignedUploadUrl({ data: { bucket, filename: file.name } });
 
   // 2. Грузим файл напрямую в Supabase в обход лимитов Vercel
   const resUpload = await fetch(signedUrl, {

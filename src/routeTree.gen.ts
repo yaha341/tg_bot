@@ -19,7 +19,6 @@ import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
-import { Route as ApiAdminSignedUrlRouteImport } from './routes/api/admin/signed-url'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicImgSplatRouteImport } from './routes/api/public/img/$'
 import { Route as ApiAdminFileSplatRouteImport } from './routes/api/admin/file/$'
@@ -74,11 +73,6 @@ const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
   path: '/api/admin/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminSignedUrlRoute = ApiAdminSignedUrlRouteImport.update({
-  id: '/api/admin/signed-url',
-  path: '/api/admin/signed-url',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -106,7 +100,6 @@ export interface FileRoutesByFullPath {
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/': typeof AdminIndexRoute
-  '/api/admin/signed-url': typeof ApiAdminSignedUrlRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
@@ -121,7 +114,6 @@ export interface FileRoutesByTo {
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin': typeof AdminIndexRoute
-  '/api/admin/signed-url': typeof ApiAdminSignedUrlRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
@@ -138,7 +130,6 @@ export interface FileRoutesById {
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/': typeof AdminIndexRoute
-  '/api/admin/signed-url': typeof ApiAdminSignedUrlRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
@@ -156,7 +147,6 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/settings'
     | '/admin/'
-    | '/api/admin/signed-url'
     | '/api/admin/upload'
     | '/api/admin/file/$'
     | '/api/public/img/$'
@@ -171,7 +161,6 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/settings'
     | '/admin'
-    | '/api/admin/signed-url'
     | '/api/admin/upload'
     | '/api/admin/file/$'
     | '/api/public/img/$'
@@ -187,7 +176,6 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/settings'
     | '/admin/'
-    | '/api/admin/signed-url'
     | '/api/admin/upload'
     | '/api/admin/file/$'
     | '/api/public/img/$'
@@ -198,7 +186,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ApiAdminSignedUrlRoute: typeof ApiAdminSignedUrlRoute
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
   ApiAdminFileSplatRoute: typeof ApiAdminFileSplatRoute
   ApiPublicImgSplatRoute: typeof ApiPublicImgSplatRoute
@@ -277,13 +264,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/signed-url': {
-      id: '/api/admin/signed-url'
-      path: '/api/admin/signed-url'
-      fullPath: '/api/admin/signed-url'
-      preLoaderRoute: typeof ApiAdminSignedUrlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/telegram/webhook': {
       id: '/api/public/telegram/webhook'
       path: '/api/public/telegram/webhook'
@@ -332,7 +312,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
-  ApiAdminSignedUrlRoute: ApiAdminSignedUrlRoute,
   ApiAdminUploadRoute: ApiAdminUploadRoute,
   ApiAdminFileSplatRoute: ApiAdminFileSplatRoute,
   ApiPublicImgSplatRoute: ApiPublicImgSplatRoute,

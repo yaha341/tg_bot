@@ -18,6 +18,18 @@ export const listProducts = createServerFn({ method: "GET" }).handler(async () =
   return data ?? [];
 });
 
+export const getSignedUploadUrl = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ bucket: z.enum(["product-images", "product-files"]), filename: z.string() }).parse(d))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const ext = (data.filename.split(".").pop() || "bin").toLowerCase().slice(0, 10);
+    const key = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const s = await db();
+    const { data: signed, error } = await s.storage.from(data.bucket).createSignedUploadUrl(key);
+    if (error || !signed) throw new Error(error?.message || "Error");
+    return { path: key, name: data.filename, signedUrl: signed.signedUrl };
+  });
+
 export const getProduct = createServerFn({ method: "GET" })
   .validator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
