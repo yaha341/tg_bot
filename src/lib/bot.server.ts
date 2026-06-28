@@ -400,7 +400,7 @@ async function notifyAdminNewOrder(orderId: number, proofFileId: string | null) 
 
   const text = `🆕 *Новый заказ #${order.id}*
 
-👤 ${escapeMd(order.display_name as string)}${order.username ? ` (@${order.username})` : ""}
+👤 ${escapeMd(order.display_name as string)}${order.username ? ` (@${escapeMd(order.username)})` : ""}
 📞 ${escapeMd((order.contact as string) || "—")}
 🌍 ${escapeMd((order.country_name as string) || "—")}
 
