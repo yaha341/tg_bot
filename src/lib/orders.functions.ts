@@ -164,3 +164,15 @@ export async function deliverOrder(orderId: number) {
   if (upErr) throw new Error(upErr.message);
   return { ok: true as const };
 }
+
+export const getScreenshotUrl = createServerFn({ method: "GET" })
+  .validator((d: string) => d)
+  .handler(async (ctx) => {
+    await requireAdmin();
+    const path = ctx.data;
+    const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
+    const { data } = await supabaseAdmin.storage
+      .from("payment-proofs")
+      .createSignedUrl(path, 60 * 60);
+    return data?.signedUrl || null;
+  });

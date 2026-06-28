@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components-ui/button";
-import { confirmOrder, listOrders, rejectOrder } from "@/lib/orders.functions";
+import { confirmOrder, listOrders, rejectOrder, getScreenshotUrl } from "@/lib/orders.functions";
 import { useState } from "react";
 
 export const Route = createFileRoute("/admin/orders")({
@@ -44,6 +44,16 @@ function OrdersPage() {
     }
   }
 
+  async function onViewScreenshot(path: string) {
+    try {
+      const url = await getScreenshotUrl({ data: path });
+      if (url) window.open(url, "_blank");
+      else alert("Не удалось загрузить скриншот");
+    } catch (e: any) {
+      alert(e.message);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Заказы</h1>
@@ -81,14 +91,12 @@ function OrdersPage() {
                 ))}
               </ul>
               {o.payment_proof_path && (
-                <a
-                  className="inline-block text-sm text-primary underline"
-                  href={`/api/admin/file/${o.payment_proof_path}?bucket=payment-proofs`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  className="inline-block text-sm text-primary underline text-left"
+                  onClick={() => onViewScreenshot(o.payment_proof_path)}
                 >
                   📷 Скриншот оплаты
-                </a>
+                </button>
               )}
               {(o.status === "awaiting_confirmation" || o.status === "awaiting_payment") && (
                 <div className="flex gap-2 pt-2">
