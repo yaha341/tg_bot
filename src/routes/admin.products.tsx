@@ -136,20 +136,20 @@ function ProductsPage() {
   }
 
   async function onFileChange(file: File | null) {
-    if (!file || !editing) return;
+    if (!file) return;
     try {
       const r = await uploadFile(file, "product-files");
-      setEditing({ ...editing, file_path: r.path, file_name: r.name });
+      setEditing((prev) => prev ? { ...prev, file_path: r.path, file_name: r.name } : prev);
     } catch (e: any) {
       alert("Ошибка загрузки файла: " + e.message);
     }
   }
 
   async function onFileChangeKz(file: File | null) {
-    if (!file || !editing) return;
+    if (!file) return;
     try {
       const r = await uploadFile(file, "product-files");
-      setEditing({ ...editing, file_path_kz: r.path, file_name_kz: r.name });
+      setEditing((prev) => prev ? { ...prev, file_path_kz: r.path, file_name_kz: r.name } : prev);
     } catch (e: any) {
       alert("Ошибка загрузки файла (KZ): " + e.message);
     }
@@ -339,16 +339,16 @@ function ProductsPage() {
           )}
 
           <div className="space-y-2 pt-4 border-t">
-            <Label>📄 Файл товара (Русский)</Label>
-            <Input type="file" onChange={(e) => onFileChange(e.target.files?.[0] ?? null)} />
+            <Label htmlFor="file-ru">📄 Файл товара (Русский)</Label>
+            <Input id="file-ru" type="file" onChange={(e) => onFileChange(e.target.files?.[0] ?? null)} />
             {editing.file_name && (
               <p className="text-sm text-muted-foreground">📎 {editing.file_name}</p>
             )}
           </div>
 
           <div className="space-y-2 pt-4 border-t">
-            <Label>📄 Файл товара (Қазақша)</Label>
-            <Input type="file" onChange={(e) => onFileChangeKz(e.target.files?.[0] ?? null)} />
+            <Label htmlFor="file-kz">📄 Файл товара (Қазақша)</Label>
+            <Input id="file-kz" type="file" onChange={(e) => onFileChangeKz(e.target.files?.[0] ?? null)} />
             {editing.file_name_kz && (
               <p className="text-sm text-muted-foreground">📎 {editing.file_name_kz}</p>
             )}
