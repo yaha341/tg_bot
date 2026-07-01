@@ -141,6 +141,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          delivered_language: string | null
           file_name_snapshot: string | null
           file_path_snapshot: string | null
           id: string
@@ -151,6 +152,7 @@ export type Database = {
           quantity: number
         }
         Insert: {
+          delivered_language?: string | null
           file_name_snapshot?: string | null
           file_path_snapshot?: string | null
           id?: string
@@ -161,6 +163,7 @@ export type Database = {
           quantity?: number
         }
         Update: {
+          delivered_language?: string | null
           file_name_snapshot?: string | null
           file_path_snapshot?: string | null
           id?: string

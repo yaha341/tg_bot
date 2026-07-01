@@ -649,12 +649,18 @@ export async function handleUpdate(update: any) {
         const item = items[idx];
         if (!item) return;
 
+        // Check if this language was already delivered
+        if (item.delivered_language === lang || item.delivered_language === "both") {
+          await tg("sendMessage", { chat_id, text: "⚠️ Этот файл уже был отправлен." });
+          return;
+        }
+
         const { sendFileToUser } = await import("./orders.functions");
         const path = lang === "ru" ? item.file_path_snapshot : item.file_path_kz_snapshot;
         const name = lang === "ru" ? item.file_name_snapshot : item.file_name_kz_snapshot;
 
         await tg("sendMessage", { chat_id, text: `⏳ Загружаю файл (${lang === "ru" ? "Русский" : "Қазақша"})...` });
-        
+
         await sendFileToUser(
           order.telegram_id,
           path,
@@ -662,6 +668,20 @@ export async function handleUpdate(update: any) {
           item.name_snapshot,
           item.quantity || 1
         );
+
+        // Update delivered_language tracking
+        const newDeliveredLang = item.delivered_language ? "both" : lang;
+        await s.from("order_items").update({ delivered_language: newDeliveredLang }).eq("id", item.id);
+
+        // Edit the message to remove buttons
+        if (cq.message?.message_id) {
+          await tg("editMessageReplyMarkup", {
+            chat_id,
+            message_id: cq.message.message_id,
+            reply_markup: { inline_keyboard: [] }
+          });
+        }
+
         return;
       }
 

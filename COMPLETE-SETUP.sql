@@ -120,11 +120,13 @@ CREATE TABLE public.order_items (
   price_snapshot NUMERIC(10,2) NOT NULL,
   quantity INT NOT NULL DEFAULT 1,
   file_path_snapshot TEXT,
-  file_name_snapshot TEXT
+  file_name_snapshot TEXT,
+  delivered_language TEXT
 );
 GRANT ALL ON public.order_items TO service_role;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_order_items_order ON public.order_items(order_id);
+COMMENT ON COLUMN public.order_items.delivered_language IS 'Tracks which language variant was delivered: NULL (not delivered), ru, kz, or both';
 
 -- App settings (kv)
 CREATE TABLE public.app_settings (
