@@ -458,11 +458,14 @@ async function notifyAdminNewOrder(orderId: number, proofFileId: string | null, 
     .select("value")
     .eq("key", "admin_chat_id")
     .maybeSingle();
-  const adminChatId = setting?.value;
-  if (!adminChatId) {
+  const adminChatIdStr = setting?.value;
+  if (!adminChatIdStr) {
     console.warn("[bot] admin_chat_id not configured");
     return;
   }
+  const adminIds = adminChatIdStr.split(",").map((s: string) => s.trim()).filter(Boolean);
+  if (adminIds.length === 0) return;
+
   const { data: order } = await s
     .from("orders")
     .select("*, order_items(*)")
@@ -476,6 +479,7 @@ async function notifyAdminNewOrder(orderId: number, proofFileId: string | null, 
 
   // --- Задача 4: обложки товаров отдельным сообщением (чтобы админ сразу видел, что продаётся) ---
   const productIds = items.map((i) => i.product_id).filter(Boolean) as string[];
+  const coverUrls: string[] = [];
   if (productIds.length > 0) {
     const { data: imgs } = await s
       .from("product_images")
@@ -484,34 +488,11 @@ async function notifyAdminNewOrder(orderId: number, proofFileId: string | null, 
       .order("sort_order");
     // Берём первую (по sort_order) обложку для каждого товара, без дублей по product_id
     const seen = new Set<string>();
-    const coverUrls: string[] = [];
     for (const im of imgs ?? []) {
       const pid = im.product_id as string;
       if (seen.has(pid)) continue;
       seen.add(pid);
       coverUrls.push(imageUrl(im.image_path as string));
-    }
-    if (coverUrls.length === 1) {
-      await tg("sendPhoto", {
-        chat_id: adminChatId,
-        photo: coverUrls[0],
-        caption: `📦 <b>Материалы заказа #${order.id}</b>\n\n${escapeHtml(itemsText)}\n\n💰 <b>Итого: ${order.total} ${order.currency}</b>`,
-        parse_mode: "HTML",
-      });
-    } else if (coverUrls.length > 1) {
-      await tg("sendMediaGroup", {
-        chat_id: adminChatId,
-        media: coverUrls.map((u, idx) => ({
-          type: "photo",
-          media: u,
-          ...(idx === 0
-            ? {
-                caption: `📦 <b>Материалы заказа #${order.id}</b>\n\n${escapeHtml(itemsText)}\n\n💰 <b>Итого: ${order.total} ${order.currency}</b>`,
-                parse_mode: "HTML",
-              }
-            : {}),
-        })),
-      });
     }
   }
 
@@ -534,33 +515,62 @@ ${escapeHtml(itemsText)}
     ],
   };
 
-  // Чек оплаты. Кнопки подтверждения всегда на сообщении с чеком.
-  if (proofFileId && proofKind === "document") {
-    // Чек прислали документом (PDF / картинка файлом)
-    await tg("sendDocument", {
-      chat_id: adminChatId,
-      document: proofFileId,
-      caption: text,
-      parse_mode: "HTML",
-      reply_markup,
-    });
-  } else if (proofFileId) {
-    // Чек прислали фото
-    await tg("sendPhoto", {
-      chat_id: adminChatId,
-      photo: proofFileId,
-      caption: text,
-      parse_mode: "HTML",
-      reply_markup,
-    });
-  } else {
-    // Чек не сохранился — помечаем, чтобы админ запросил вручную
-    await tg("sendMessage", {
-      chat_id: adminChatId,
-      text: `${text}\n\n⚠️ <b>Чек не удалось получить автоматически</b> — запросите у покупателя.`,
-      parse_mode: "HTML",
-      reply_markup,
-    });
+  for (const adminChatId of adminIds) {
+    try {
+      if (coverUrls.length === 1) {
+        await tg("sendPhoto", {
+          chat_id: adminChatId,
+          photo: coverUrls[0],
+          caption: `📦 <b>Материалы заказа #${order.id}</b>\n\n${escapeHtml(itemsText)}\n\n💰 <b>Итого: ${order.total} ${order.currency}</b>`,
+          parse_mode: "HTML",
+        });
+      } else if (coverUrls.length > 1) {
+        await tg("sendMediaGroup", {
+          chat_id: adminChatId,
+          media: coverUrls.map((u, idx) => ({
+            type: "photo",
+            media: u,
+            ...(idx === 0
+              ? {
+                  caption: `📦 <b>Материалы заказа #${order.id}</b>\n\n${escapeHtml(itemsText)}\n\n💰 <b>Итого: ${order.total} ${order.currency}</b>`,
+                  parse_mode: "HTML",
+                }
+              : {}),
+          })),
+        });
+      }
+
+      // Чек оплаты. Кнопки подтверждения всегда на сообщении с чеком.
+      if (proofFileId && proofKind === "document") {
+        // Чек прислали документом (PDF / картинка файлом)
+        await tg("sendDocument", {
+          chat_id: adminChatId,
+          document: proofFileId,
+          caption: text,
+          parse_mode: "HTML",
+          reply_markup,
+        });
+      } else if (proofFileId) {
+        // Чек прислали фото
+        await tg("sendPhoto", {
+          chat_id: adminChatId,
+          photo: proofFileId,
+          caption: text,
+          parse_mode: "HTML",
+          reply_markup,
+        });
+      } else {
+        // Чек не сохранился — помечаем, чтобы админ запросил вручную
+        await tg("sendMessage", {
+          chat_id: adminChatId,
+          text: `${text}\n\n⚠️ <b>Чек не удалось получить автоматически</b> — запросите у покупателя.`,
+          parse_mode: "HTML",
+          reply_markup,
+        });
+      }
+    } catch (err) {
+      console.error(`[bot] failed to notify admin ${adminChatId}`, err);
+    }
   }
 }
 

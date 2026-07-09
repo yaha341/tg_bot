@@ -4,8 +4,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components-ui/button";
 import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
+import { Checkbox } from "@/components-ui/checkbox";
 import { getSettings, saveSetting } from "@/lib/settings.functions";
 import { resetAllData } from "@/lib/reset.functions";
+
+const ROLES = [
+  { id: "1040879530", label: "Владелец" },
+  { id: "7256670713", label: "Разработчик" },
+];
 
 export const Route = createFileRoute("/admin/settings")({
   component: SettingsPage,
@@ -56,16 +62,39 @@ function SettingsPage() {
       <h1 className="text-2xl font-semibold">Настройки</h1>
       <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="space-y-2">
-          <Label>Ваш Telegram ID для уведомлений о заказах</Label>
+          <Label>Получатели уведомлений о заказах (Telegram ID)</Label>
+          <div className="flex flex-col gap-3 py-2">
+            {ROLES.map((role) => {
+              const ids = adminChatId.split(",").map((s) => s.trim()).filter(Boolean);
+              const checked = ids.includes(role.id);
+              return (
+                <label key={role.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(c) => {
+                      let newIds = [...ids];
+                      if (c) {
+                        if (!newIds.includes(role.id)) newIds.push(role.id);
+                      } else {
+                        newIds = newIds.filter((i) => i !== role.id);
+                      }
+                      setAdminChatId(newIds.join(", "));
+                    }}
+                  />
+                  <span>
+                    {role.label} <span className="text-muted-foreground">({role.id})</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
           <Input
             value={adminChatId}
             onChange={(e) => setAdminChatId(e.target.value)}
-            placeholder="например, 123456789"
+            placeholder="например, 123456789, 987654321"
           />
           <p className="text-xs text-muted-foreground">
-            Чтобы узнать ID — напишите своему боту команду <code>/id</code>. Бот вернёт ваш ID.
-            Вставьте его сюда и нажмите «Сохранить». Все уведомления о новых заказах будут
-            приходить именно туда.
+            Выберите роли из списка или впишите ID вручную (через запятую). Уведомления будут приходить всем указанным получателям.
           </p>
         </div>
         <div className="space-y-2 pt-2 border-t border-border/50">
