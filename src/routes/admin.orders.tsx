@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components-ui/dialog";
-import { confirmOrder, deleteOrder, listOrders, rejectOrder } from "@/lib/orders.functions";
+import { confirmOrder, deleteOrder, listOrders, redeliverOrder, rejectOrder } from "@/lib/orders.functions";
 import { useState } from "react";
 
 // Тип чека определяется по расширению сохранённого пути.
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/admin/orders")({
 const statusMap: Record<string, { label: string; cls: string }> = {
   awaiting_payment: { label: "Ждёт оплаты", cls: "bg-muted text-muted-foreground" },
   awaiting_confirmation: { label: "Ждёт подтверждения", cls: "bg-amber-100 text-amber-900" },
+  delivering: { label: "Выдаётся", cls: "bg-blue-100 text-blue-900" },
   delivered: { label: "Выдан", cls: "bg-green-100 text-green-900" },
   rejected: { label: "Отклонён", cls: "bg-red-100 text-red-900" },
 };
@@ -42,7 +43,22 @@ function OrdersPage() {
     if (!confirm(`Подтвердить оплату заказа #${id} и выдать файлы?`)) return;
     setBusy(id);
     try {
-      await confirmOrder({ data: { id } });
+      const result = await confirmOrder({ data: { id } });
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      if (result.alreadyDelivered) {
+        alert(`Заказ #${id} уже выдаётся или выдан.`);
+      }
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function onRedeliver(id: number) {
+    if (!confirm(`Отправить файлы заказа #${id} покупателю ещё раз?`)) return;
+    setBusy(id);
+    try {
+      await redeliverOrder({ data: { id } });
       qc.invalidateQueries({ queryKey: ["orders"] });
     } catch (e: any) {
       alert(e.message);
@@ -124,6 +140,9 @@ function OrdersPage() {
                   📷 Скриншот оплаты
                 </button>
               )}
+              {o.status === "delivering" && (
+                <p className="text-sm text-blue-700 pt-2">⏳ Заказ выдаётся — подождите, не нажимайте кнопку повторно.</p>
+              )}
               {(o.status === "awaiting_confirmation" || o.status === "awaiting_payment") && (
                 <div className="flex gap-2 pt-2">
                   <Button onClick={() => onConfirm(o.id)} disabled={busy === o.id}>
@@ -135,7 +154,7 @@ function OrdersPage() {
                 </div>
               )}
               {o.status === "delivered" && (
-                <Button size="sm" variant="outline" onClick={() => onConfirm(o.id)}>
+                <Button size="sm" variant="outline" onClick={() => onRedeliver(o.id)} disabled={busy === o.id}>
                   Отправить файлы ещё раз
                 </Button>
               )}

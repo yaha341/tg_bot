@@ -733,6 +733,7 @@ async function showMyOrders(chat_id: number, telegram_id: number) {
   const statusMap: Record<string, string> = {
     awaiting_payment: "⏳ ожидает оплаты",
     awaiting_confirmation: "🔎 проверяется",
+    delivering: "📤 выдаётся",
     delivered: "✅ выдан",
     rejected: "❌ отклонён",
   };
@@ -864,10 +865,22 @@ export async function handleUpdate(update: any) {
       // Admin actions
       if (data.startsWith("confirm:")) {
         const orderId = Number(data.slice(8));
+        if (cq.message?.message_id) {
+          await tg("editMessageReplyMarkup", {
+            chat_id,
+            message_id: cq.message.message_id,
+            reply_markup: { inline_keyboard: [] },
+          });
+        }
+        await tg("sendMessage", { chat_id, text: `⏳ Выдаю заказ #${orderId}...` });
         const { deliverOrder } = await import("./orders.server");
         try {
-          await deliverOrder(orderId);
-          await tg("sendMessage", { chat_id, text: `✅ Заказ #${orderId} выдан.` });
+          const result = await deliverOrder(orderId);
+          if (result.alreadyDelivered) {
+            await tg("sendMessage", { chat_id, text: `ℹ️ Заказ #${orderId} уже выдаётся или выдан.` });
+          } else {
+            await tg("sendMessage", { chat_id, text: `✅ Заказ #${orderId} выдан.` });
+          }
         } catch (e: any) {
           await tg("sendMessage", { chat_id, text: `Ошибка: ${e.message}` });
         }

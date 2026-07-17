@@ -43,6 +43,15 @@ export const confirmOrder = createServerFn({ method: "POST" })
     return await deliverOrder(data.id);
   });
 
+export const redeliverOrder = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ id: z.number().int() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./admin-session.server");
+    const { deliverOrder } = await import("./orders.server");
+    await requireAdmin();
+    return await deliverOrder(data.id, { force: true });
+  });
+
 export const rejectOrder = createServerFn({ method: "POST" })
   .validator((d: unknown) => z.object({ id: z.number().int(), note: z.string().max(500).optional() }).parse(d))
   .handler(async ({ data }) => {
