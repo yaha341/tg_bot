@@ -831,7 +831,7 @@ export async function handleUpdate(update: any) {
           return;
         }
 
-        const { sendFileToUser } = await import("./orders.functions");
+        const { sendFileToUser } = await import("./orders.server");
         const path = lang === "ru" ? item.file_path_snapshot : item.file_path_kz_snapshot;
         const name = lang === "ru" ? item.file_name_snapshot : item.file_name_kz_snapshot;
 
@@ -864,7 +864,7 @@ export async function handleUpdate(update: any) {
       // Admin actions
       if (data.startsWith("confirm:")) {
         const orderId = Number(data.slice(8));
-        const { deliverOrder } = await import("./orders.functions");
+        const { deliverOrder } = await import("./orders.server");
         try {
           await deliverOrder(orderId);
           await tg("sendMessage", { chat_id, text: `✅ Заказ #${orderId} выдан.` });
