@@ -1,9 +1,9 @@
 # Деплой Telegram бота с админ-панелью на Vercel
 
 ## Текущая архитектура
-- **База данных**: Supabase (уже в сети ✅)
-- **Фронтенд**: React + TanStack Router 
-- **Бэкенд**: Nitro SSR
+- **База данных**: Supabase
+- **Фронтенд**: React + TanStack Router
+- **Бэкенд**: Nitro SSR (TanStack Start)
 - **Telegram бот**: Webhook на `/api/public/telegram/webhook`
 
 ## Инструкция по деплою на Vercel
@@ -32,14 +32,16 @@ vercel
 После деплоя перейдите в Vercel Dashboard → Settings → Environment Variables и добавьте:
 
 ```
-TELEGRAM_BOT_TOKEN=8956271941:AAGqtGWc8wHpJTcTPWt8cPZKa8GAcDcXmZY
-SUPABASE_PROJECT_ID=fnwksbasxakktscdjlfp
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_4W8CmZnryDawb7df01EKRw_pJX4kLld
-SUPABASE_URL=https://fnwksbasxakktscdjlfp.supabase.co
-VITE_SUPABASE_PROJECT_ID=fnwksbasxakktscdjlfp
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_4W8CmZnryDawb7df01EKRw_pJX4kLld
-VITE_SUPABASE_URL=https://fnwksbasxakktscdjlfp.supabase.co
+TELEGRAM_BOT_TOKEN=<ваш_токен_от_BotFather>
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_PUBLISHABLE_KEY=<publishable_key>
+SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<publishable_key>
+PUBLIC_APP_URL=https://<your-project>.vercel.app
 ```
+
+> **Важно:** никогда не коммитьте реальные ключи в репозиторий. Храните их только в Vercel / `.env.local`.
 
 ### 5. Настройте Telegram Webhook
 
@@ -48,14 +50,14 @@ VITE_SUPABASE_URL=https://fnwksbasxakktscdjlfp.supabase.co
 Настройте вебхук для Telegram бота:
 
 ```bash
-curl -X POST "https://api.telegram.org/bot8956271941:AAGqtGWc8wHpJTcTPWt8cPZKa8GAcDcXmZY/setWebhook" \
+curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://your-project.vercel.app/api/public/telegram/webhook"}'
 ```
 
 ### 6. Проверьте вебхук
 ```bash
-curl "https://api.telegram.org/bot8956271941:AAGqtGWc8wHpJTcTPWt8cPZKa8GAcDcXmZY/getWebhookInfo"
+curl "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo"
 ```
 
 ## Важные замечания
@@ -66,21 +68,19 @@ curl "https://api.telegram.org/bot8956271941:AAGqtGWc8wHpJTcTPWt8cPZKa8GAcDcXmZY
 - Убедитесь, что ваш проект публично доступен
 
 ### Supabase
-- Ваша база данных уже в сети, настройки не требуют изменений
-- Данные будут сохраняться в Supabase независимо от деплоя
+- База данных работает независимо от деплоя фронтенда
+- Миграции лежат в `supabase/migrations/`
 
 ### Обновления
-- Для обновления проекта просто делайте `git push` в ваш репозиторий
-- Vercel автоматически задеплоит новую версию
+- Для обновления проекта делайте `git push` в репозиторий
+- Vercel автоматически задеploит новую версию
 
 ## Альтернативный вариант: Railway
 
-Если у вас возникнут проблемы с webhook на Vercel, Railway - отличный аналог:
+Если у вас возникнут проблемы с webhook на Vercel, Railway — хороший аналог:
 
 1. Создайте аккаунт на [railway.app](https://railway.app)
 2. Подключите GitHub репозиторий
 3. Railway автоматически определит Nitro проект
 4. Добавьте те же переменные окружения
 5. Railway предоставит публичный URL для webhook
-
-Railway особенно удобен для Telegram ботов из-за стабильных webhook endpoints.

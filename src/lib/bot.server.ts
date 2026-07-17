@@ -17,12 +17,11 @@ async function db() {
 }
 
 function originFromState(): string {
-  // Use stable preview URL as image origin. Project ID hardcoded in env at deploy.
   return (
     process.env.PUBLIC_APP_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-    `https://project--79250394-984a-476c-a6aa-efe3efcc4b0e-dev.lovable.app`
+    "http://localhost:3000"
   );
 }
 
@@ -223,6 +222,99 @@ function escapeHtml(t: string): string {
     .replace(/'/g, "&#039;");
 }
 
+function normalizePhone(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("+")) {
+    const num = trimmed.replace(/[^\d+]/g, "").slice(1);
+    if (num.length < 10 || num.length > 15) return null;
+    return `+${num}`;
+  }
+
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("8")) return `+7${digits.slice(1)}`;
+  if (digits.length === 10) return `+7${digits}`;
+  if (digits.length >= 10 && digits.length <= 15) return `+${digits}`;
+  return null;
+}
+
+async function saveContactAndContinueCheckout(chat_id: number, user: BotUser, phone: string) {
+  await setContact(user.telegram_id, phone);
+  const updatedUser = { ...user, contact_phone: phone };
+  const nextState = { ...user.state, mode: "idle" as const };
+  await setState(user.telegram_id, nextState);
+
+  await tg("sendMessage", {
+    chat_id,
+    text: "✅ Номер сохранён.",
+    reply_markup: mainMenu(),
+  });
+
+  if (!user.state?.country_code) {
+    await askCountry(chat_id, user.telegram_id, true);
+    return;
+  }
+
+  await placeOrder(chat_id, updatedUser, user.state.country_code);
+}
+
+const TELEGRAM_MEDIA_GROUP_MAX = 10;
+const TELEGRAM_MESSAGE_MAX = 4000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendLongHtmlMessage(chat_id: number, text: string) {
+  if (text.length <= TELEGRAM_MESSAGE_MAX) {
+    await tg("sendMessage", { chat_id, text, parse_mode: "HTML" });
+    return;
+  }
+  const lines = text.split("\n");
+  let chunk = "";
+  for (const line of lines) {
+    const next = chunk ? `${chunk}\n${line}` : line;
+    if (next.length > TELEGRAM_MESSAGE_MAX) {
+      if (chunk) await tg("sendMessage", { chat_id, text: chunk, parse_mode: "HTML" });
+      chunk = line;
+    } else {
+      chunk = next;
+    }
+  }
+  if (chunk) await tg("sendMessage", { chat_id, text: chunk, parse_mode: "HTML" });
+}
+
+async function sendCoverPreviews(adminChatId: string, orderId: number, coverUrls: string[]) {
+  if (coverUrls.length === 0) return;
+  const shortCaption = `📦 <b>Материалы заказа #${orderId}</b> (${coverUrls.length} шт.)`;
+  for (let offset = 0; offset < coverUrls.length; offset += TELEGRAM_MEDIA_GROUP_MAX) {
+    const batch = coverUrls.slice(offset, offset + TELEGRAM_MEDIA_GROUP_MAX);
+    try {
+      if (batch.length === 1) {
+        await tg("sendPhoto", {
+          chat_id: adminChatId,
+          photo: batch[0],
+          caption: offset === 0 ? shortCaption : undefined,
+          parse_mode: "HTML",
+        });
+      } else {
+        await tg("sendMediaGroup", {
+          chat_id: adminChatId,
+          media: batch.map((u, idx) => ({
+            type: "photo",
+            media: u,
+            ...(offset === 0 && idx === 0 ? { caption: shortCaption, parse_mode: "HTML" } : {}),
+          })),
+        });
+      }
+    } catch (err) {
+      console.error(`[bot] cover preview batch failed for order #${orderId}`, err);
+    }
+    if (offset + TELEGRAM_MEDIA_GROUP_MAX < coverUrls.length) await sleep(300);
+  }
+}
+
 async function addToCart(telegram_id: number, product_id: string) {
   const s = await db();
   const { data: existing } = await s
@@ -311,7 +403,9 @@ async function startCheckout(chat_id: number, user: BotUser) {
     await setState(telegram_id, { ...user.state, mode: "awaiting_contact" });
     await tg("sendMessage", {
       chat_id,
-      text: "Для оформления заказа поделитесь, пожалуйста, контактом — продавец свяжется с вами при необходимости.",
+      text:
+        "Для оформления заказа укажите номер телефона — <b>просто напишите его в этот чат</b>, например:\n<code>+7 900 123-45-67</code>\n\nИли нажмите кнопку ниже, чтобы поделиться контактом автоматически.",
+      parse_mode: "HTML",
       reply_markup: {
         keyboard: [[{ text: "📱 Поделиться контактом", request_contact: true }]],
         resize_keyboard: true,
@@ -473,9 +567,6 @@ async function notifyAdminNewOrder(orderId: number, proofFileId: string | null, 
     .single();
   if (!order) return;
   const items = ((order as any).order_items as Array<{ product_id: string | null; name_snapshot: string; price_snapshot: number; quantity: number }>) || [];
-  const itemsText = items
-    .map((i) => `• ${i.name_snapshot} × ${i.quantity} — ${i.price_snapshot} ${order.currency}`)
-    .join("\n");
 
   // --- Задача 4: обложки товаров отдельным сообщением (чтобы админ сразу видел, что продаётся) ---
   const productIds = items.map((i) => i.product_id).filter(Boolean) as string[];
@@ -496,15 +587,19 @@ async function notifyAdminNewOrder(orderId: number, proofFileId: string | null, 
     }
   }
 
-  const text = `🆕 <b>Новый заказ #${order.id}</b>
+  const summaryText = `🆕 <b>Новый заказ #${order.id}</b>
 
 👤 ${escapeHtml(order.display_name as string)}${order.username ? ` (@${escapeHtml(order.username)})` : ""}
 📞 ${escapeHtml((order.contact as string) || "—")}
 🌍 ${escapeHtml((order.country_name as string) || "—")}
-
-${escapeHtml(itemsText)}
+📦 Позиций: ${items.length}
 
 💰 <b>Итого: ${order.total} ${order.currency}</b>`;
+
+  const itemsMessage =
+    items.length > 0
+      ? `📋 <b>Состав заказа #${order.id}</b>\n\n${items.map((i) => `• ${escapeHtml(i.name_snapshot)} × ${i.quantity} — ${i.price_snapshot} ${order.currency}`).join("\n")}`
+      : "";
 
   const reply_markup = {
     inline_keyboard: [
@@ -516,60 +611,60 @@ ${escapeHtml(itemsText)}
   };
 
   for (const adminChatId of adminIds) {
+    // 1) Главное: краткое уведомление с кнопками — отдельно от превью и чека.
     try {
-      if (coverUrls.length === 1) {
-        await tg("sendPhoto", {
-          chat_id: adminChatId,
-          photo: coverUrls[0],
-          caption: `📦 <b>Материалы заказа #${order.id}</b>\n\n${escapeHtml(itemsText)}\n\n💰 <b>Итого: ${order.total} ${order.currency}</b>`,
-          parse_mode: "HTML",
-        });
-      } else if (coverUrls.length > 1) {
-        await tg("sendMediaGroup", {
-          chat_id: adminChatId,
-          media: coverUrls.map((u, idx) => ({
-            type: "photo",
-            media: u,
-            ...(idx === 0
-              ? {
-                  caption: `📦 <b>Материалы заказа #${order.id}</b>\n\n${escapeHtml(itemsText)}\n\n💰 <b>Итого: ${order.total} ${order.currency}</b>`,
-                  parse_mode: "HTML",
-                }
-              : {}),
-          })),
-        });
-      }
+      await tg("sendMessage", {
+        chat_id: adminChatId,
+        text: summaryText,
+        parse_mode: "HTML",
+        reply_markup,
+      });
+    } catch (err) {
+      console.error(`[bot] failed to notify admin ${adminChatId} (summary)`, err);
+    }
 
-      // Чек оплаты. Кнопки подтверждения всегда на сообщении с чеком.
+    // 2) Полный список позиций — отдельным сообщением (без лимита caption 1024).
+    if (itemsMessage) {
+      try {
+        await sendLongHtmlMessage(adminChatId, itemsMessage);
+      } catch (err) {
+        console.error(`[bot] failed to notify admin ${adminChatId} (items list)`, err);
+      }
+    }
+
+    // 3) Чек оплаты — короткая подпись, без длинного списка товаров.
+    const proofCaption = `🧾 <b>Чек оплаты — заказ #${order.id}</b>`;
+    try {
       if (proofFileId && proofKind === "document") {
-        // Чек прислали документом (PDF / картинка файлом)
         await tg("sendDocument", {
           chat_id: adminChatId,
           document: proofFileId,
-          caption: text,
+          caption: proofCaption,
           parse_mode: "HTML",
-          reply_markup,
         });
       } else if (proofFileId) {
-        // Чек прислали фото
         await tg("sendPhoto", {
           chat_id: adminChatId,
           photo: proofFileId,
-          caption: text,
+          caption: proofCaption,
           parse_mode: "HTML",
-          reply_markup,
         });
       } else {
-        // Чек не сохранился — помечаем, чтобы админ запросил вручную
         await tg("sendMessage", {
           chat_id: adminChatId,
-          text: `${text}\n\n⚠️ <b>Чек не удалось получить автоматически</b> — запросите у покупателя.`,
+          text: `${proofCaption}\n\n⚠️ <b>Чек не удалось получить автоматически</b> — запросите у покупателя.`,
           parse_mode: "HTML",
-          reply_markup,
         });
       }
     } catch (err) {
-      console.error(`[bot] failed to notify admin ${adminChatId}`, err);
+      console.error(`[bot] failed to notify admin ${adminChatId} (proof)`, err);
+    }
+
+    // 4) Превью обложек — опционально, батчами по 10 (лимит Telegram).
+    try {
+      await sendCoverPreviews(adminChatId, order.id as number, coverUrls);
+    } catch (err) {
+      console.error(`[bot] failed to notify admin ${adminChatId} (covers)`, err);
     }
   }
 }
@@ -835,22 +930,32 @@ export async function handleUpdate(update: any) {
       return;
     }
 
-    // Contact share
-    if (msg.contact && (user.state?.mode === "awaiting_contact" || true)) {
-      await setContact(from.id, msg.contact.phone_number);
-      await tg("sendMessage", {
-        chat_id,
-        text: "Спасибо! Контакт сохранён.",
-        reply_markup: mainMenu(),
-      });
-      if (user.state?.mode === "awaiting_contact") {
-        await setState(from.id, { ...user.state, mode: "idle" });
-        if (!user.state?.country_code) {
-          await askCountry(chat_id, from.id, true);
-        } else {
-          await placeOrder(chat_id, user, user.state.country_code);
-        }
+    // Contact share (optional — user can also type phone as text)
+    if (msg.contact && user.state?.mode === "awaiting_contact") {
+      await saveContactAndContinueCheckout(chat_id, user, msg.contact.phone_number);
+      return;
+    }
+
+    // Phone number typed as text during checkout
+    if (user.state?.mode === "awaiting_contact" && msg.text) {
+      if (msg.text === "📱 Поделиться контактом") {
+        await tg("sendMessage", {
+          chat_id,
+          text: "Нажмите кнопку «📱 Поделиться контактом» внизу экрана или просто напишите номер телефона в чат.",
+        });
+        return;
       }
+
+      const phone = normalizePhone(msg.text);
+      if (!phone) {
+        await tg("sendMessage", {
+          chat_id,
+          text: "Не удалось распознать номер. Напишите телефон цифрами, например: <code>+79001234567</code> или <code>89001234567</code>",
+          parse_mode: "HTML",
+        });
+        return;
+      }
+      await saveContactAndContinueCheckout(chat_id, user, phone);
       return;
     }
 

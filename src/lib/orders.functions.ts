@@ -8,6 +8,10 @@ async function db() {
   return supabaseAdmin;
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export const listOrders = createServerFn({ method: "GET" }).handler(async () => {
   await requireAdmin();
   const s = await db();
@@ -99,44 +103,53 @@ export async function deliverOrder(orderId: number) {
     quantity: number;
   }>;
 
+  const throttle = items.length > 5;
   for (let idx = 0; idx < items.length; idx++) {
     const item = items[idx];
     const path_ru = item.file_path_snapshot;
     const path_kz = (item as any).file_path_kz_snapshot;
 
-    if (!path_ru) {
+    try {
+      if (!path_ru) {
+        await tg("sendMessage", {
+          chat_id: order.telegram_id,
+          text: `⚠️ Файл для «${item.name_snapshot}» не настроен. Продавец вышлет вручную.`,
+        });
+        continue;
+      }
+
+      if (path_kz) {
+        await tg("sendMessage", {
+          chat_id: order.telegram_id,
+          text: `📚 Материал «<b>${item.name_snapshot}</b>»\nВыберите язык, на котором хотите получить файл:`,
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "🇷🇺 Русский", callback_data: `lang_ru:${orderId}:${idx}` },
+                { text: "🇰🇿 Қазақша", callback_data: `lang_kz:${orderId}:${idx}` },
+              ],
+            ],
+          },
+        });
+      } else {
+        await sendFileToUser(
+          order.telegram_id,
+          path_ru,
+          item.file_name_snapshot || "file.bin",
+          item.name_snapshot,
+          item.quantity || 1,
+        );
+      }
+    } catch (e) {
+      console.error(`[orders] deliver item ${idx} of order #${orderId} failed`, e);
       await tg("sendMessage", {
         chat_id: order.telegram_id,
-        text: `⚠️ Файл для «${item.name_snapshot}» не настроен. Продавец вышлет вручную.`,
+        text: `⚠️ Не удалось отправить «${item.name_snapshot}». Продавец вышлет вручную.`,
       });
-      continue;
     }
 
-    if (path_kz) {
-      // Prompt for language
-      await tg("sendMessage", {
-        chat_id: order.telegram_id,
-        text: `📚 Материал «<b>${item.name_snapshot}</b>»\nВыберите язык, на котором хотите получить файл:`,
-        parse_mode: "HTML",
-        reply_markup: JSON.stringify({
-          inline_keyboard: [
-            [
-              { text: "🇷🇺 Русский", callback_data: `lang_ru:${orderId}:${idx}` },
-              { text: "🇰🇿 Қазақша", callback_data: `lang_kz:${orderId}:${idx}` }
-            ]
-          ]
-        })
-      });
-    } else {
-      // Send directly
-      await sendFileToUser(
-        order.telegram_id,
-        path_ru,
-        item.file_name_snapshot || "file.bin",
-        item.name_snapshot,
-        item.quantity || 1
-      );
-    }
+    if (throttle && idx + 1 < items.length) await sleep(200);
   }
 
   await tg("sendMessage", {
