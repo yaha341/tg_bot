@@ -3,5 +3,11 @@
   "outputDirectory": ".vercel/output",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": "tanstack-start"
+  "framework": "tanstack-start",
+  "crons": [
+    {
+      "path": "/api/cron/broadcast",
+      "schedule": "* * * * *"
+    }
+  ]
 }

@@ -25,6 +25,7 @@ function AdminLayout() {
             <NavLink to="/admin/categories">Категории</NavLink>
             <NavLink to="/admin/products">Товары</NavLink>
             <NavLink to="/admin/orders">Заказы</NavLink>
+            <NavLink to="/admin/broadcast">Рассылка</NavLink>
             <NavLink to="/admin/payment-methods">Реквизиты</NavLink>
             <NavLink to="/admin/settings">Настройки</NavLink>
           </div>

@@ -18,6 +18,8 @@ import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AdminBroadcastRouteImport } from './routes/admin.broadcast'
+import { Route as ApiCronBroadcastRouteImport } from './routes/api/cron/broadcast'
 import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicImgSplatRouteImport } from './routes/api/public/img/$'
@@ -68,6 +70,16 @@ const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBroadcastRoute = AdminBroadcastRouteImport.update({
+  id: '/broadcast',
+  path: '/broadcast',
+  getParentRoute: () => AdminRoute,
+} as any)
+const ApiCronBroadcastRoute = ApiCronBroadcastRouteImport.update({
+  id: '/api/cron/broadcast',
+  path: '/api/cron/broadcast',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
   id: '/api/admin/upload',
   path: '/api/admin/upload',
@@ -94,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/admin/broadcast': typeof AdminBroadcastRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -101,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
+  '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -108,6 +122,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/broadcast': typeof AdminBroadcastRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -115,6 +130,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin': typeof AdminIndexRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
+  '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -124,6 +140,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/admin/broadcast': typeof AdminBroadcastRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/orders': typeof AdminOrdersRoute
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
@@ -131,6 +148,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/': typeof AdminIndexRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
+  '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -141,6 +159,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/admin/broadcast'
     | '/admin/categories'
     | '/admin/orders'
     | '/admin/payment-methods'
@@ -148,6 +167,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/'
     | '/api/admin/upload'
+    | '/api/cron/broadcast'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
@@ -155,6 +175,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/admin/broadcast'
     | '/admin/categories'
     | '/admin/orders'
     | '/admin/payment-methods'
@@ -162,6 +183,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin'
     | '/api/admin/upload'
+    | '/api/cron/broadcast'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
@@ -170,6 +192,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/admin/broadcast'
     | '/admin/categories'
     | '/admin/orders'
     | '/admin/payment-methods'
@@ -177,6 +200,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/'
     | '/api/admin/upload'
+    | '/api/cron/broadcast'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
@@ -187,6 +211,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
+  ApiCronBroadcastRoute: typeof ApiCronBroadcastRoute
   ApiAdminFileSplatRoute: typeof ApiAdminFileSplatRoute
   ApiPublicImgSplatRoute: typeof ApiPublicImgSplatRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -257,6 +282,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/broadcast': {
+      id: '/admin/broadcast'
+      path: '/broadcast'
+      fullPath: '/admin/broadcast'
+      preLoaderRoute: typeof AdminBroadcastRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/cron/broadcast': {
+      id: '/api/cron/broadcast'
+      path: '/api/cron/broadcast'
+      fullPath: '/api/cron/broadcast'
+      preLoaderRoute: typeof ApiCronBroadcastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/upload': {
       id: '/api/admin/upload'
       path: '/api/admin/upload'
@@ -289,6 +328,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBroadcastRoute: typeof AdminBroadcastRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminOrdersRoute: typeof AdminOrdersRoute
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
@@ -298,6 +338,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBroadcastRoute: AdminBroadcastRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminOrdersRoute: AdminOrdersRoute,
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
@@ -313,6 +354,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   ApiAdminUploadRoute: ApiAdminUploadRoute,
+  ApiCronBroadcastRoute: ApiCronBroadcastRoute,
   ApiAdminFileSplatRoute: ApiAdminFileSplatRoute,
   ApiPublicImgSplatRoute: ApiPublicImgSplatRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
