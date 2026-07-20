@@ -20,6 +20,7 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminBroadcastRouteImport } from './routes/admin.broadcast'
 import { Route as ApiCronBroadcastRouteImport } from './routes/api/cron/broadcast'
+import { Route as ApiCronEnsureWebhookRouteImport } from './routes/api/cron/ensure-webhook'
 import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicImgSplatRouteImport } from './routes/api/public/img/$'
@@ -80,6 +81,11 @@ const ApiCronBroadcastRoute = ApiCronBroadcastRouteImport.update({
   path: '/api/cron/broadcast',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronEnsureWebhookRoute = ApiCronEnsureWebhookRouteImport.update({
+  id: '/api/cron/ensure-webhook',
+  path: '/api/cron/ensure-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
   id: '/api/admin/upload',
   path: '/api/admin/upload',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
+  '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
+  '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
+  '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
+    | '/api/cron/ensure-webhook'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
+    | '/api/cron/ensure-webhook'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
+    | '/api/cron/ensure-webhook'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
   ApiCronBroadcastRoute: typeof ApiCronBroadcastRoute
+  ApiCronEnsureWebhookRoute: typeof ApiCronEnsureWebhookRoute
   ApiAdminFileSplatRoute: typeof ApiAdminFileSplatRoute
   ApiPublicImgSplatRoute: typeof ApiPublicImgSplatRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
@@ -296,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronBroadcastRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/ensure-webhook': {
+      id: '/api/cron/ensure-webhook'
+      path: '/api/cron/ensure-webhook'
+      fullPath: '/api/cron/ensure-webhook'
+      preLoaderRoute: typeof ApiCronEnsureWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/upload': {
       id: '/api/admin/upload'
       path: '/api/admin/upload'
@@ -355,6 +375,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ApiAdminUploadRoute: ApiAdminUploadRoute,
   ApiCronBroadcastRoute: ApiCronBroadcastRoute,
+  ApiCronEnsureWebhookRoute: ApiCronEnsureWebhookRoute,
   ApiAdminFileSplatRoute: ApiAdminFileSplatRoute,
   ApiPublicImgSplatRoute: ApiPublicImgSplatRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { processBroadcastBatch } from "@/lib/broadcast.server";
+import { ensureTelegramWebhook } from "@/lib/webhook-ensure.server";
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
@@ -18,6 +19,9 @@ export const Route = createFileRoute("/api/cron/broadcast")({
           return new Response("Unauthorized", { status: 401 });
         }
         try {
+          // Self-heal webhook before processing broadcasts
+          const webhook = await ensureTelegramWebhook();
+
           let total = 0;
           let done = false;
           let last: Awaited<ReturnType<typeof processBroadcastBatch>> | undefined;
@@ -27,7 +31,7 @@ export const Route = createFileRoute("/api/cron/broadcast")({
             done = last.done;
             if (!last.processed) break;
           }
-          return Response.json({ ok: true, processed: total, done, ...last });
+          return Response.json({ ok: true, webhook, processed: total, done, ...last });
         } catch (e: any) {
           console.error("[cron/broadcast]", e);
           return Response.json({ ok: false, error: e.message }, { status: 500 });
