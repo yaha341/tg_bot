@@ -242,9 +242,15 @@ export async function processBroadcastBatch() {
     .limit(BATCH_SIZE);
 
   if (!pending?.length) {
+    const { data: final } = await s
+      .from("broadcasts")
+      .select("sent_count, total_count")
+      .eq("id", broadcast.id)
+      .single();
+    const finalStatus = final && final.sent_count === 0 && final.total_count > 0 ? "failed" : "completed";
     await s
       .from("broadcasts")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .update({ status: finalStatus, completed_at: new Date().toISOString() })
       .eq("id", broadcast.id);
     return { processed: 0, done: true, broadcast_id: broadcast.id };
   }
@@ -302,14 +308,47 @@ export async function processBroadcastBatch() {
     .eq("status", "pending");
 
   if (!count) {
+    const { data: final2 } = await s
+      .from("broadcasts")
+      .select("sent_count, total_count")
+      .eq("id", broadcast.id)
+      .single();
+    const finalStatus2 = final2 && final2.sent_count === 0 && final2.total_count > 0 ? "failed" : "completed";
     await s
       .from("broadcasts")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .update({ status: finalStatus2, completed_at: new Date().toISOString() })
       .eq("id", broadcast.id);
     return { processed: pending.length, done: true, broadcast_id: broadcast.id };
   }
 
   return { processed: pending.length, done: false, broadcast_id: broadcast.id };
+}
+
+export async function cancelBroadcast(broadcastId: string) {
+  const s = await db();
+  const { data: row } = await s
+    .from("broadcasts")
+    .select("id, status")
+    .eq("id", broadcastId)
+    .single();
+
+  if (!row) throw new Error("Рассылка не найдена.");
+  if (row.status !== "queued" && row.status !== "sending") {
+    throw new Error("Отменить можно только активную рассылку.");
+  }
+
+  await s
+    .from("broadcast_recipients")
+    .update({ status: "failed", error_message: "cancelled" })
+    .eq("broadcast_id", broadcastId)
+    .eq("status", "pending");
+
+  await s
+    .from("broadcasts")
+    .update({ status: "cancelled", completed_at: new Date().toISOString() })
+    .eq("id", broadcastId);
+
+  return { ok: true as const };
 }
 
 export async function sendTestBroadcast(payload: BroadcastPayload) {

@@ -29,6 +29,12 @@ function imageUrl(path: string): string {
   return `${originFromState()}/api/public/img/${path}`;
 }
 
+function categoryButtonLabel(name: string): string {
+  const trimmed = name.trim();
+  if (/^(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u.test(trimmed)) return trimmed;
+  return `📁 ${trimmed}`;
+}
+
 async function upsertUser(from: {
   id: number;
   username?: string;
@@ -102,7 +108,7 @@ async function showCategories(chat_id: number, parentId: string | null, userCoun
   if (offset === 0 && cats && cats.length > 0) {
     const catButtons: Array<Array<{ text: string; callback_data: string }>> = [];
     for (const c of cats) {
-      catButtons.push([{ text: `📁 ${c.name as string}`, callback_data: `cat:${c.id}:0` }]);
+      catButtons.push([{ text: categoryButtonLabel(c.name as string), callback_data: `cat:${c.id}:0` }]);
     }
     if (parentId) {
       const { data: cur } = await s.from("categories").select("parent_id").eq("id", parentId).single();

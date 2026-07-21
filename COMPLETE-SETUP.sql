@@ -128,6 +128,45 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 CREATE INDEX idx_order_items_order ON public.order_items(order_id);
 COMMENT ON COLUMN public.order_items.delivered_language IS 'Tracks which language variant was delivered: NULL (not delivered), ru, kz, or both';
 
+-- Broadcasts (mass-messaging campaigns)
+CREATE TABLE public.broadcasts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  status TEXT NOT NULL DEFAULT 'queued'
+    CHECK (status IN ('queued', 'sending', 'completed', 'cancelled', 'failed')),
+  message_text TEXT NOT NULL,
+  photo_paths JSONB NOT NULL DEFAULT '[]'::jsonb,
+  product_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+  show_catalog BOOLEAN NOT NULL DEFAULT true,
+  audience_type TEXT NOT NULL DEFAULT 'all'
+    CHECK (audience_type IN ('all', 'country', 'buyers', 'non_buyers', 'test')),
+  audience_filter JSONB NOT NULL DEFAULT '{}'::jsonb,
+  total_count INT NOT NULL DEFAULT 0,
+  sent_count INT NOT NULL DEFAULT 0,
+  failed_count INT NOT NULL DEFAULT 0,
+  blocked_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ
+);
+GRANT ALL ON public.broadcasts TO service_role;
+ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
+CREATE INDEX idx_broadcasts_active ON public.broadcasts (status) WHERE status IN ('queued', 'sending');
+
+-- Broadcast recipients (per-user delivery queue)
+CREATE TABLE public.broadcast_recipients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  broadcast_id UUID NOT NULL REFERENCES public.broadcasts(id) ON DELETE CASCADE,
+  telegram_id BIGINT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'sent', 'failed', 'blocked')),
+  error_message TEXT,
+  sent_at TIMESTAMPTZ,
+  UNIQUE (broadcast_id, telegram_id)
+);
+GRANT ALL ON public.broadcast_recipients TO service_role;
+ALTER TABLE public.broadcast_recipients ENABLE ROW LEVEL SECURITY;
+CREATE INDEX idx_broadcast_recipients_pending ON public.broadcast_recipients (broadcast_id, status) WHERE status = 'pending';
+
 -- App settings (kv)
 CREATE TABLE public.app_settings (
   key TEXT PRIMARY KEY,
@@ -188,6 +227,16 @@ VALUES (
   true,
   52428800, -- 50MB limit
   ARRAY['application/pdf', 'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+) ON CONFLICT (id) DO NOTHING;
+
+-- Создание bucket для изображений рассылки
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'broadcast-images',
+  'broadcast-images',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Создание bucket для скриншотов оплаты
@@ -294,6 +343,22 @@ TO service_role
 USING (true)
 WITH CHECK (true);
 
+-- Broadcasts
+DROP POLICY IF EXISTS "Service Role All broadcasts" ON public.broadcasts;
+CREATE POLICY "Service Role All broadcasts"
+ON public.broadcasts FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
+-- Broadcast recipients
+DROP POLICY IF EXISTS "Service Role All broadcast_recipients" ON public.broadcast_recipients;
+CREATE POLICY "Service Role All broadcast_recipients"
+ON public.broadcast_recipients FOR ALL
+TO service_role
+USING (true)
+WITH CHECK (true);
+
 -- App settings
 DROP POLICY IF EXISTS "Service Role All app_settings" ON public.app_settings;
 CREATE POLICY "Service Role All app_settings"
@@ -301,3 +366,10 @@ ON public.app_settings FOR ALL
 TO service_role
 USING (true)
 WITH CHECK (true);
+
+-- Public read for broadcast-images bucket
+DROP POLICY IF EXISTS "Public Read broadcast-images" ON storage.objects;
+CREATE POLICY "Public Read broadcast-images"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'broadcast-images');

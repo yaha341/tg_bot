@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components-ui/button";
 import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
@@ -10,6 +10,7 @@ import {
   listCategories,
   updateCategory,
 } from "@/lib/categories.functions";
+import { EmojiInsertBar, insertAtCursor } from "@/components-ui/emoji-insert-bar";
 
 export const Route = createFileRoute("/admin/categories")({
   component: CategoriesPage,
@@ -24,6 +25,17 @@ function CategoriesPage() {
   const [editing, setEditing] = useState<Cat | null>(null);
   const [name, setName] = useState("");
   const [parentId, setParentId] = useState<string>("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  function insertEmoji(emoji: string) {
+    const el = nameInputRef.current;
+    const { next, cursor } = insertAtCursor(name, emoji, el?.selectionStart ?? null, el?.selectionEnd ?? null);
+    setName(next);
+    requestAnimationFrame(() => {
+      el?.focus();
+      el?.setSelectionRange(cursor, cursor);
+    });
+  }
 
   function reset() {
     setEditing(null);
@@ -56,7 +68,16 @@ function CategoriesPage() {
           <h2 className="font-medium">{editing ? "Редактирование" : "Новая категория"}</h2>
           <div className="space-y-2">
             <Label>Название</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Например: Математика" />
+            <Input
+              ref={nameInputRef}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Например: 📐 Математика"
+            />
+            <p className="text-xs text-muted-foreground">
+              Эмодзи в названии отображаются в кнопках каталога бота. На ПК — кликните ниже или Win+. / Ctrl+Cmd+Space.
+            </p>
+            <EmojiInsertBar onInsert={insertEmoji} />
           </div>
           <div className="space-y-2">
             <Label>Родительская категория</Label>

@@ -87,6 +87,15 @@ export const processBroadcastBatchFn = createServerFn({ method: "POST" }).handle
   return await processBroadcastBatch();
 });
 
+export const cancelBroadcastFn = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./admin-session.server");
+    const { cancelBroadcast } = await import("./broadcast.server");
+    await requireAdmin();
+    return await cancelBroadcast(data.id);
+  });
+
 export const getBroadcastUploadUrl = createServerFn({ method: "POST" })
   .validator((d: unknown) => z.object({ filename: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
