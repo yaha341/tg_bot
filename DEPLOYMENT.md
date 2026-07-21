@@ -18,17 +18,17 @@
 
 Обрабатывает очередь рассылки порциями по 25 сообщений за вызов. Перед обработкой автоматически проверяет и восстанавливает webhook бота.
 
-**Настройка через Vercel cron** (`vercel.json`):
-```json
-{
-  "crons": [{ "path": "/api/cron/broadcast", "schedule": "* * * * *" }]
-}
-```
-> ⚠️ Vercel cron с интервалом `* * * * *` (каждую минуту) требует тариф **Pro** или выше. На бесплатном тарифе минимальный интервал — раз в час.
+> ⚠️ На тарифе **Hobby** Vercel cron чаще раза в день **нельзя** (ошибка про `* * * * *`). В `vercel.json` встроенный cron отключён — используйте **внешний** cron.
 
-**Альтернатива — внешний cron (cron-job.org и т.п.):**
+**Внешний cron (cron-job.org и т.п.) — рекомендуется:**
 ```
-GET https://my-app.vercel.app/api/cron/broadcast?secret=YOUR_CRON_SECRET
+GET https://your-app.vercel.app/api/cron/broadcast?secret=YOUR_CRON_SECRET
+```
+Интервал: каждую 1–2 минуты, пока идёт рассылка (или постоянно).
+
+**Vercel Pro:** можно вернуть в `vercel.json`:
+```json
+{ "crons": [{ "path": "/api/cron/broadcast", "schedule": "* * * * *" }] }
 ```
 
 ### Webhook — `/api/cron/ensure-webhook`
