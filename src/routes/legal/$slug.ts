@@ -41,7 +41,10 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
-function wrapPage(title: string, bodyHtml: string) {
+function wrapPage(title: string, bodyHtml: string, downloadUrl?: string) {
+  const downloadLink = downloadUrl
+    ? `<p style="margin-bottom:1.5rem"><a href="${escapeHtml(downloadUrl)}">⬇ Скачать оригинал файла</a></p>`
+    : "";
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -53,10 +56,39 @@ function wrapPage(title: string, bodyHtml: string) {
     h1, h2, h3 { line-height: 1.25; }
     pre { white-space: pre-wrap; font-family: inherit; }
     a { color: #0b57d0; }
+    .doc-body img { max-width: 100%; height: auto; }
   </style>
 </head>
 <body>
-${bodyHtml}
+  <h1>${escapeHtml(title)}</h1>
+  ${downloadLink}
+  <div class="doc-body">${bodyHtml}</div>
+</body>
+</html>`;
+}
+
+function officeViewerFallback(title: string, fileUrl: string, fileName: string) {
+  const viewerSrc = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+    .bar { padding: 0.75rem 1rem; border-bottom: 1px solid #e5e5e5; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .bar h1 { font-size: 1rem; margin: 0; flex: 1; }
+    .bar a { color: #0b57d0; text-decoration: none; font-size: 0.9rem; }
+    iframe { border: 0; width: 100%; height: calc(100% - 3.25rem); }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <h1>${escapeHtml(title)}</h1>
+    <a href="${escapeHtml(fileUrl)}" download="${escapeHtml(fileName)}">Скачать файл</a>
+  </div>
+  <iframe src="${escapeHtml(viewerSrc)}" title="${escapeHtml(title)}" allowfullscreen></iframe>
 </body>
 </html>`;
 }
@@ -69,14 +101,21 @@ function contentTypeForName(name: string): string {
   return "application/octet-stream";
 }
 
+function extOf(name: string): string {
+  return (name.split(".").pop() || "").toLowerCase();
+}
+
 export const Route = createFileRoute("/legal/$slug")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         const slug = params.slug;
         if (!isSlug(slug)) {
           return new Response("Not found", { status: 404 });
         }
+
+        const reqUrl = new URL(request.url);
+        const wantRaw = reqUrl.searchParams.get("raw") === "1";
 
         const meta = SLUGS[slug];
         const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
@@ -88,17 +127,56 @@ export const Route = createFileRoute("/legal/$slug")({
         const filePath = get(meta.fileKey);
         if (filePath) {
           const fileName = get(meta.nameKey) || filePath;
+          const ext = extOf(fileName) || extOf(filePath);
+
+          const origin =
+            process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ||
+            `${reqUrl.protocol}//${reqUrl.host}`;
+          const rawUrl = `${origin}/legal/${slug}?raw=1`;
+
+          // DOCX → HTML page (opens as website, including in Telegram)
+          if (ext === "docx" && !wantRaw) {
+            const { data, error } = await supabaseAdmin.storage.from("legal-docs").download(filePath);
+            if (error || !data) {
+              return new Response("Файл документа не найден", { status: 404 });
+            }
+            try {
+              const mammoth = await import("mammoth");
+              const arrayBuffer = await data.arrayBuffer();
+              const result = await mammoth.convertToHtml({ arrayBuffer });
+              return new Response(wrapPage(meta.title, result.value || "<p>(пустой документ)</p>", rawUrl), {
+                headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+              });
+            } catch (e) {
+              console.error("[legal] mammoth convert failed", e);
+              return new Response(officeViewerFallback(meta.title, rawUrl, fileName), {
+                headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+              });
+            }
+          }
+
+          // Old .doc — Office Online viewer page
+          if (ext === "doc" && !wantRaw) {
+            return new Response(officeViewerFallback(meta.title, rawUrl, fileName), {
+              headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+            });
+          }
+
+          // PDF (or ?raw=1 for any) — stream file
           const { data, error } = await supabaseAdmin.storage.from("legal-docs").download(filePath);
           if (error || !data) {
             return new Response("Файл документа не найден", { status: 404 });
           }
           const buf = await data.arrayBuffer();
           const asciiName = fileName.replace(/[^\x20-\x7E]/g, "_") || "document.pdf";
+          const ctype =
+            data.type && data.type !== "application/octet-stream" ? data.type : contentTypeForName(fileName);
           return new Response(buf, {
             headers: {
-              "Content-Type": data.type || contentTypeForName(fileName),
+              "Content-Type": ctype,
               "Content-Disposition": `inline; filename="${asciiName}"`,
               "Cache-Control": "public, max-age=300",
+              "Access-Control-Allow-Origin": "*",
             },
           });
         }
@@ -106,13 +184,16 @@ export const Route = createFileRoute("/legal/$slug")({
         const raw = get(meta.htmlKey);
         let bodyHtml: string;
         if (!raw) {
-          bodyHtml = `<h1>${escapeHtml(meta.title)}</h1><p>Документ пока не загружен. Загрузите файл в админ-панели → Настройки.</p>`;
+          bodyHtml = `<p>Документ пока не загружен. Загрузите файл в админ-панели → Настройки.</p>`;
         } else if (slug === "requisites") {
-          bodyHtml = `<h1>${escapeHtml(meta.title)}</h1><pre>${escapeHtml(raw)}</pre>`;
+          bodyHtml = `<pre>${escapeHtml(raw)}</pre>`;
         } else if (raw.includes("<")) {
-          bodyHtml = raw;
+          // Full HTML document body — render as-is without extra title wrapper
+          return new Response(wrapPage(meta.title, raw), {
+            headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+          });
         } else {
-          bodyHtml = `<h1>${escapeHtml(meta.title)}</h1><pre>${escapeHtml(raw)}</pre>`;
+          bodyHtml = `<pre>${escapeHtml(raw)}</pre>`;
         }
 
         return new Response(wrapPage(meta.title, bodyHtml), {

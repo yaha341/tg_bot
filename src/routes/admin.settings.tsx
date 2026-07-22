@@ -243,6 +243,9 @@ function SettingsPage() {
         </div>
         <div className="space-y-2">
           <Label>Договор оферты (файл PDF / DOC / DOCX)</Label>
+          <p className="text-xs text-muted-foreground">
+            Для удобного просмотра в браузере лучше загружать <b>PDF</b>. DOC/DOCX откроются через веб-просмотрщик.
+          </p>
           <Input
             type="file"
             accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -263,6 +266,9 @@ function SettingsPage() {
         </div>
         <div className="space-y-2">
           <Label>Политика конфиденциальности (файл PDF / DOC / DOCX)</Label>
+          <p className="text-xs text-muted-foreground">
+            Для удобного просмотра в браузере лучше загружать <b>PDF</b>. DOC/DOCX откроются через веб-просмотрщик.
+          </p>
           <Input
             type="file"
             accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
