@@ -25,6 +25,10 @@ import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicImgSplatRouteImport } from './routes/api/public/img/$'
 import { Route as ApiAdminFileSplatRouteImport } from './routes/api/admin/file/$'
+import { Route as ApiPublicRobokassaResultRouteImport } from './routes/api/public/robokassa/result'
+import { Route as ApiPublicRobokassaSuccessRouteImport } from './routes/api/public/robokassa/success'
+import { Route as ApiPublicRobokassaFailRouteImport } from './routes/api/public/robokassa/fail'
+import { Route as LegalSlugRouteImport } from './routes/legal/$slug'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -107,6 +111,28 @@ const ApiAdminFileSplatRoute = ApiAdminFileSplatRouteImport.update({
   path: '/api/admin/file/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRobokassaResultRoute =
+  ApiPublicRobokassaResultRouteImport.update({
+    id: '/api/public/robokassa/result',
+    path: '/api/public/robokassa/result',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRobokassaSuccessRoute =
+  ApiPublicRobokassaSuccessRouteImport.update({
+    id: '/api/public/robokassa/success',
+    path: '/api/public/robokassa/success',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicRobokassaFailRoute = ApiPublicRobokassaFailRouteImport.update({
+  id: '/api/public/robokassa/fail',
+  path: '/api/public/robokassa/fail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalSlugRoute = LegalSlugRouteImport.update({
+  id: '/legal/$slug',
+  path: '/legal/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -119,12 +145,16 @@ export interface FileRoutesByFullPath {
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/': typeof AdminIndexRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
+  '/api/public/robokassa/result': typeof ApiPublicRobokassaResultRoute
+  '/api/public/robokassa/success': typeof ApiPublicRobokassaSuccessRoute
+  '/api/public/robokassa/fail': typeof ApiPublicRobokassaFailRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -136,12 +166,16 @@ export interface FileRoutesByTo {
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin': typeof AdminIndexRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
+  '/api/public/robokassa/result': typeof ApiPublicRobokassaResultRoute
+  '/api/public/robokassa/success': typeof ApiPublicRobokassaSuccessRoute
+  '/api/public/robokassa/fail': typeof ApiPublicRobokassaFailRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -155,12 +189,16 @@ export interface FileRoutesById {
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/': typeof AdminIndexRoute
+  '/legal/$slug': typeof LegalSlugRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
+  '/api/public/robokassa/result': typeof ApiPublicRobokassaResultRoute
+  '/api/public/robokassa/success': typeof ApiPublicRobokassaSuccessRoute
+  '/api/public/robokassa/fail': typeof ApiPublicRobokassaFailRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -175,12 +213,16 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/settings'
     | '/admin/'
+    | '/legal/$slug'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
     | '/api/cron/ensure-webhook'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
+    | '/api/public/robokassa/result'
+    | '/api/public/robokassa/success'
+    | '/api/public/robokassa/fail'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -192,12 +234,16 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/settings'
     | '/admin'
+    | '/legal/$slug'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
     | '/api/cron/ensure-webhook'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
+    | '/api/public/robokassa/result'
+    | '/api/public/robokassa/success'
+    | '/api/public/robokassa/fail'
   id:
     | '__root__'
     | '/'
@@ -210,24 +256,32 @@ export interface FileRouteTypes {
     | '/admin/products'
     | '/admin/settings'
     | '/admin/'
+    | '/legal/$slug'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
     | '/api/cron/ensure-webhook'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/telegram/webhook'
+    | '/api/public/robokassa/result'
+    | '/api/public/robokassa/success'
+    | '/api/public/robokassa/fail'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
+  LegalSlugRoute: typeof LegalSlugRoute
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
   ApiCronBroadcastRoute: typeof ApiCronBroadcastRoute
   ApiCronEnsureWebhookRoute: typeof ApiCronEnsureWebhookRoute
   ApiAdminFileSplatRoute: typeof ApiAdminFileSplatRoute
   ApiPublicImgSplatRoute: typeof ApiPublicImgSplatRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
+  ApiPublicRobokassaResultRoute: typeof ApiPublicRobokassaResultRoute
+  ApiPublicRobokassaSuccessRoute: typeof ApiPublicRobokassaSuccessRoute
+  ApiPublicRobokassaFailRoute: typeof ApiPublicRobokassaFailRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -344,6 +398,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminFileSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/robokassa/result': {
+      id: '/api/public/robokassa/result'
+      path: '/api/public/robokassa/result'
+      fullPath: '/api/public/robokassa/result'
+      preLoaderRoute: typeof ApiPublicRobokassaResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/robokassa/success': {
+      id: '/api/public/robokassa/success'
+      path: '/api/public/robokassa/success'
+      fullPath: '/api/public/robokassa/success'
+      preLoaderRoute: typeof ApiPublicRobokassaSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/robokassa/fail': {
+      id: '/api/public/robokassa/fail'
+      path: '/api/public/robokassa/fail'
+      fullPath: '/api/public/robokassa/fail'
+      preLoaderRoute: typeof ApiPublicRobokassaFailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal/$slug': {
+      id: '/legal/$slug'
+      path: '/legal/$slug'
+      fullPath: '/legal/$slug'
+      preLoaderRoute: typeof LegalSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -373,12 +455,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
+  LegalSlugRoute: LegalSlugRoute,
   ApiAdminUploadRoute: ApiAdminUploadRoute,
   ApiCronBroadcastRoute: ApiCronBroadcastRoute,
   ApiCronEnsureWebhookRoute: ApiCronEnsureWebhookRoute,
   ApiAdminFileSplatRoute: ApiAdminFileSplatRoute,
   ApiPublicImgSplatRoute: ApiPublicImgSplatRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
+  ApiPublicRobokassaResultRoute: ApiPublicRobokassaResultRoute,
+  ApiPublicRobokassaSuccessRoute: ApiPublicRobokassaSuccessRoute,
+  ApiPublicRobokassaFailRoute: ApiPublicRobokassaFailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

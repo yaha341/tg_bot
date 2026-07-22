@@ -17,7 +17,7 @@ export const getSettings = createServerFn({ method: "GET" }).handler(async () =>
   return map;
 });
 
-const SaveInput = z.object({ key: z.string().min(1).max(100), value: z.string().max(2000) });
+const SaveInput = z.object({ key: z.string().min(1).max(100), value: z.string().max(100_000) });
 
 export const saveSetting = createServerFn({ method: "POST" })
   .validator((d: unknown) => SaveInput.parse(d))

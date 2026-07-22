@@ -275,12 +275,16 @@ function ProductsPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Описание</Label>
+            <Label>Описание (обязательно для модерации Robokassa)</Label>
             <Textarea
               rows={4}
               value={editing.description}
               onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+              placeholder="Подробное описание материала для покупателя"
             />
+            {!editing.description.trim() && (
+              <p className="text-xs text-amber-600">Рекомендуется заполнить подробное описание товара/услуги.</p>
+            )}
           </div>
 
           <div className="space-y-2">

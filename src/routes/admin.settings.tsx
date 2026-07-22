@@ -5,6 +5,7 @@ import { Button } from "@/components-ui/button";
 import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
 import { Checkbox } from "@/components-ui/checkbox";
+import { Textarea } from "@/components-ui/textarea";
 import { getSettings, saveSetting } from "@/lib/settings.functions";
 import { resetAllData } from "@/lib/reset.functions";
 
@@ -24,10 +25,38 @@ function SettingsPage() {
   const [adminContactLink, setAdminContactLink] = useState("");
   const [saved, setSaved] = useState(false);
 
+  const [rkEnabled, setRkEnabled] = useState(false);
+  const [rkTestMode, setRkTestMode] = useState(false);
+  const [rkLogin, setRkLogin] = useState("");
+  const [rkPass1, setRkPass1] = useState("");
+  const [rkPass2, setRkPass2] = useState("");
+  const [rkPass1Test, setRkPass1Test] = useState("");
+  const [rkPass2Test, setRkPass2Test] = useState("");
+  const [rkSaved, setRkSaved] = useState(false);
+
+  const [legalSeller, setLegalSeller] = useState("");
+  const [legalOffer, setLegalOffer] = useState("");
+  const [legalPrivacy, setLegalPrivacy] = useState("");
+  const [legalAbout, setLegalAbout] = useState("");
+  const [legalSaved, setLegalSaved] = useState(false);
+
   useEffect(() => {
     setAdminChatId(settings.data?.admin_chat_id ?? "");
     setAdminContactLink(settings.data?.admin_contact_link ?? "");
+    setRkEnabled(settings.data?.robokassa_enabled === "true");
+    setRkTestMode(settings.data?.robokassa_test_mode === "true");
+    setRkLogin(settings.data?.robokassa_login ?? "");
+    setRkPass1(settings.data?.robokassa_pass1 ?? "");
+    setRkPass2(settings.data?.robokassa_pass2 ?? "");
+    setRkPass1Test(settings.data?.robokassa_pass1_test ?? "");
+    setRkPass2Test(settings.data?.robokassa_pass2_test ?? "");
+    setLegalSeller(settings.data?.legal_seller_details ?? "");
+    setLegalOffer(settings.data?.legal_offer_html ?? "");
+    setLegalPrivacy(settings.data?.legal_privacy_html ?? "");
+    setLegalAbout(settings.data?.legal_about_html ?? "");
   }, [settings.data]);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://your-app.vercel.app";
 
   async function onSave() {
     await saveSetting({ data: { key: "admin_chat_id", value: adminChatId.trim() } });
@@ -35,6 +64,29 @@ function SettingsPage() {
     qc.invalidateQueries({ queryKey: ["settings"] });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function onSaveRobokassa() {
+    await saveSetting({ data: { key: "robokassa_enabled", value: rkEnabled ? "true" : "false" } });
+    await saveSetting({ data: { key: "robokassa_test_mode", value: rkTestMode ? "true" : "false" } });
+    await saveSetting({ data: { key: "robokassa_login", value: rkLogin.trim() } });
+    await saveSetting({ data: { key: "robokassa_pass1", value: rkPass1.trim() } });
+    await saveSetting({ data: { key: "robokassa_pass2", value: rkPass2.trim() } });
+    await saveSetting({ data: { key: "robokassa_pass1_test", value: rkPass1Test.trim() } });
+    await saveSetting({ data: { key: "robokassa_pass2_test", value: rkPass2Test.trim() } });
+    qc.invalidateQueries({ queryKey: ["settings"] });
+    setRkSaved(true);
+    setTimeout(() => setRkSaved(false), 2000);
+  }
+
+  async function onSaveLegal() {
+    await saveSetting({ data: { key: "legal_seller_details", value: legalSeller } });
+    await saveSetting({ data: { key: "legal_offer_html", value: legalOffer } });
+    await saveSetting({ data: { key: "legal_privacy_html", value: legalPrivacy } });
+    await saveSetting({ data: { key: "legal_about_html", value: legalAbout } });
+    qc.invalidateQueries({ queryKey: ["settings"] });
+    setLegalSaved(true);
+    setTimeout(() => setLegalSaved(false), 2000);
   }
 
   const [resetting, setResetting] = useState(false);
@@ -58,7 +110,7 @@ function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-xl">
+    <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-semibold">Настройки</h1>
       <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="space-y-2">
@@ -114,9 +166,106 @@ function SettingsPage() {
         </div>
       </div>
 
+      <div className="bg-card border rounded-lg p-4 space-y-4">
+        <h2 className="text-lg font-semibold">Юридические документы (Robokassa / РК)</h2>
+        <p className="text-sm text-muted-foreground">
+          Нужны для модерации магазина. Ссылки также доступны в боте → «ℹ️ Информация».
+        </p>
+        <div className="rounded-md bg-muted/50 p-3 text-xs space-y-1 break-all">
+          <div>
+            Оферта: <code>{origin}/legal/offer</code>
+          </div>
+          <div>
+            Политика: <code>{origin}/legal/privacy</code>
+          </div>
+          <div>
+            Реквизиты: <code>{origin}/legal/requisites</code>
+          </div>
+          <div>
+            О продавце: <code>{origin}/legal/about</code>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Реквизиты продавца (текст)</Label>
+          <Textarea rows={5} value={legalSeller} onChange={(e) => setLegalSeller(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Договор оферты (HTML или текст)</Label>
+          <Textarea rows={8} value={legalOffer} onChange={(e) => setLegalOffer(e.target.value)} className="font-mono text-xs" />
+        </div>
+        <div className="space-y-2">
+          <Label>Политика конфиденциальности (HTML или текст)</Label>
+          <Textarea rows={8} value={legalPrivacy} onChange={(e) => setLegalPrivacy(e.target.value)} className="font-mono text-xs" />
+        </div>
+        <div className="space-y-2">
+          <Label>О продавце / авторе (HTML или текст)</Label>
+          <Textarea rows={5} value={legalAbout} onChange={(e) => setLegalAbout(e.target.value)} className="font-mono text-xs" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={onSaveLegal}>Сохранить документы</Button>
+          {legalSaved && <span className="text-sm text-green-600">Сохранено ✓</span>}
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-lg p-4 space-y-4">
+        <h2 className="text-lg font-semibold">Robokassa</h2>
+        <div className="rounded-md bg-muted/50 p-3 text-sm space-y-2">
+          <p className="font-medium">URL для кабинета Robokassa:</p>
+          <code className="block break-all text-xs">{origin}/api/public/robokassa/result</code>
+          <code className="block break-all text-xs">{origin}/api/public/robokassa/success</code>
+          <code className="block break-all text-xs">{origin}/api/public/robokassa/fail</code>
+          <p className="text-muted-foreground text-xs">
+            ResultURL: метод POST, алгоритм хеша MD5. Регион: Robokassa.KZ.
+          </p>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <Checkbox checked={rkEnabled} onCheckedChange={(c) => setRkEnabled(!!c)} />
+          <span>Включить оплату через Robokassa (автовыдача файлов)</span>
+        </label>
+
+        {rkEnabled && (
+          <div className="space-y-4 pt-2 border-t border-border/50">
+            <div className="space-y-2">
+              <Label>Идентификатор магазина (MerchantLogin)</Label>
+              <Input value={rkLogin} onChange={(e) => setRkLogin(e.target.value)} placeholder="my_shop_id" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Пароль #1 (боевой)</Label>
+                <Input type="password" value={rkPass1} onChange={(e) => setRkPass1(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Пароль #2 (боевой)</Label>
+                <Input type="password" value={rkPass2} onChange={(e) => setRkPass2(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Пароль #1 (тестовый)</Label>
+                <Input type="password" value={rkPass1Test} onChange={(e) => setRkPass1Test(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Пароль #2 (тестовый)</Label>
+                <Input type="password" value={rkPass2Test} onChange={(e) => setRkPass2Test(e.target.value)} />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={rkTestMode} onCheckedChange={(c) => setRkTestMode(!!c)} />
+              <span>Тестовый режим (IsTest=1)</span>
+            </label>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 pt-2">
+          <Button onClick={onSaveRobokassa}>Сохранить Robokassa</Button>
+          {rkSaved && <span className="text-sm text-green-600">Сохранено ✓</span>}
+        </div>
+      </div>
+
       <div className="bg-card border rounded-lg p-4 space-y-1 text-sm">
         <h2 className="font-medium mb-2">Доступ в админ-панель</h2>
-        <p>Логин и пароль: <code>admin</code> / <code>admin</code></p>
+        <p>
+          Логин и пароль: <code>admin</code> / <code>admin</code>
+        </p>
         <p className="text-muted-foreground">
           Для смены — обратитесь к разработчику или измените секреты <code>ADMIN_USERNAME</code> и
           <code> ADMIN_PASSWORD</code> в настройках проекта.
@@ -126,9 +275,8 @@ function SettingsPage() {
       <div className="bg-card border border-destructive/40 rounded-lg p-4 space-y-3">
         <h2 className="font-medium text-destructive">Опасная зона</h2>
         <p className="text-sm text-muted-foreground">
-          Полный сброс: удалит все товары, категории, изображения, файлы товаров, заказы,
-          корзины пользователей и скриншоты оплаты. Счётчики обнулятся. Настройки и реквизиты
-          оплаты сохранятся.
+          Полный сброс: удалит все товары, категории, изображения, файлы товаров, заказы, корзины пользователей и
+          скриншоты оплаты. Счётчики обнулятся. Настройки и реквизиты оплаты сохранятся.
         </p>
         <div className="flex items-center gap-2">
           <Button variant="destructive" onClick={onReset} disabled={resetting}>

@@ -39,7 +39,40 @@ GET https://your-app.vercel.app/api/cron/broadcast?secret=YOUR_CRON_SECRET
 
 При первой настройке выполните `COMPLETE-SETUP.sql` в SQL Editor Supabase.
 
-Если БД уже существует и нужно добавить только модуль рассылки — выполните `PATCH-BROADCASTS.sql`.
+Если БД уже существует:
+- модуль рассылки — `PATCH-BROADCASTS.sql`
+- Robokassa + юр.документы — `PATCH-ROBOKASSA.sql`
+
+## Robokassa (KZ)
+
+### Кабинет Robokassa (технастройки)
+
+| Поле | Значение |
+|------|----------|
+| Result URL | `https://YOUR_APP/api/public/robokassa/result` |
+| Метод Result URL | **POST** |
+| Success URL | `https://YOUR_APP/api/public/robokassa/success` |
+| Fail URL | `https://YOUR_APP/api/public/robokassa/fail` |
+| Алгоритм хеша | **MD5** |
+
+В админке бота → Настройки → блок Robokassa: MerchantLogin, пароли #1/#2 (боевые и тестовые), включить оплату.
+
+### Чеклист наполнения (модерация РК)
+
+Заполните в админке → Настройки → «Юридические документы»:
+
+1. Реквизиты продавца (ИП/ТОО, БИН, банк, адрес)
+2. Публичный договор оферты
+3. Политика конфиденциальности
+4. Блок «О продавце»
+
+Публичные URL (для модераторов и кнопки в боте «ℹ️ Информация»):
+- `/legal/offer`
+- `/legal/privacy`
+- `/legal/requisites`
+- `/legal/about`
+
+Также: у товаров — подробные описания; для Казахстана — цены в тенге (KZT / ₸).
 
 ## Модуль рассылки — Smoke-проверка
 

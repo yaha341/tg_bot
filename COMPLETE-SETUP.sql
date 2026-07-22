@@ -373,3 +373,18 @@ CREATE POLICY "Public Read broadcast-images"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'broadcast-images');
+
+-- Robokassa + legal texts (moderation / KZ)
+INSERT INTO public.app_settings (key, value) VALUES
+('robokassa_enabled', 'false'),
+('robokassa_test_mode', 'false'),
+('robokassa_login', ''),
+('robokassa_pass1', ''),
+('robokassa_pass2', ''),
+('robokassa_pass1_test', ''),
+('robokassa_pass2_test', ''),
+('legal_seller_details', 'ИП / ТОО «Название»\nБИН: 000000000000\nБанк: …\nИИК: …\nАдрес: …\n\n(Замените на свои реквизиты в админке → Настройки)'),
+('legal_offer_html', '<h1>Публичный договор оферты</h1><p>Настоящий документ является публичной офертой в соответствии с законодательством Республики Казахстан.</p><p><strong>Замените этот текст</strong> на актуальный договор оферты, релевантный вашей сфере деятельности.</p>'),
+('legal_privacy_html', '<h1>Политика конфиденциальности</h1><p>Настоящая политика определяет порядок обработки персональных данных в соответствии с законодательством Республики Казахстан.</p><p><strong>Замените этот текст</strong> на актуальную политику конфиденциальности.</p>'),
+('legal_about_html', '<h1>О продавце</h1><p>Краткое описание автора / продавца материалов.</p><p><strong>Замените этот текст</strong> в админке → Настройки.</p>')
+ON CONFLICT (key) DO NOTHING;

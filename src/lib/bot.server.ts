@@ -22,11 +22,19 @@ function originFromState(): string {
     (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
     "http://localhost:3000"
-  );
+  ).replace(/\/$/, "");
 }
 
 function imageUrl(path: string): string {
   return `${originFromState()}/api/public/img/${path}`;
+}
+
+function formatMoney(amount: number | string, currency: string): string {
+  const n = typeof amount === "number" ? amount : Number(amount);
+  const value = Number.isFinite(n) ? (Number.isInteger(n) ? String(n) : n.toFixed(2)) : String(amount);
+  const cur = (currency || "").toUpperCase();
+  if (cur === "KZT") return `${value} ₸`;
+  return `${value} ${currency}`;
 }
 
 function categoryButtonLabel(name: string): string {
@@ -75,7 +83,7 @@ function mainMenu() {
     keyboard: [
       [{ text: "📚 Каталог" }, { text: "🔍 Поиск" }],
       [{ text: "🛒 Корзина" }, { text: "📋 Мои заказы" }],
-      [{ text: "💬 Связаться с автором" }],
+      [{ text: "ℹ️ Информация" }, { text: "💬 Связаться с автором" }],
     ],
     resize_keyboard: true,
   };
@@ -177,8 +185,10 @@ async function sendProductCard(chat_id: number, p: any, userCountryCode: string 
     }
   }
 
-  const desc = p.description ? `\n\n${escapeHtml(p.description as string)}` : "";
-  const caption = `📦 <b>${escapeHtml(p.name as string)}</b>${desc}\n\n💰 <b>${displayPrice} ${displayCurrency}</b>`;
+  const desc = p.description
+    ? `\n\n${escapeHtml(p.description as string)}`
+    : `\n\n<i>Подробное описание уточняется у продавца.</i>`;
+  const caption = `📦 <b>${escapeHtml(p.name as string)}</b>${desc}\n\n💰 <b>${formatMoney(displayPrice, displayCurrency)}</b>`;
   const reply_markup = {
     inline_keyboard: [
       [{ text: "➕ В корзину", callback_data: `add:${p.id}` }]
@@ -376,12 +386,12 @@ async function showCart(chat_id: number, user: BotUser) {
     
     const line = Number(displayPrice) * Number(it.quantity);
     total += line;
-    text += `• ${escapeHtml(p.name)} × ${it.quantity} — ${line} ${currency}\n`;
+    text += `• ${escapeHtml(p.name)} × ${it.quantity} — ${formatMoney(line, currency)}\n`;
     buttons.push([
       { text: `❌ Убрать «${p.name}»`, callback_data: `rem:${it.id}` },
     ]);
   }
-  text += `\n<b>Итого: ${total} ${currency}</b>`;
+  text += `\n<b>Итого: ${formatMoney(total, currency)}</b>`;
   buttons.push([
     { text: "💳 Оформить заказ", callback_data: "checkout" },
     { text: "🗑 Очистить", callback_data: "clear" },
@@ -542,11 +552,47 @@ async function placeOrder(chat_id: number, user: BotUser, country_code: string) 
   await s.from("order_items").insert(rows);
   await s.from("cart_items").delete().eq("telegram_id", telegram_id);
 
+  const { data: allSettings } = await s.from("app_settings").select("key, value");
+  const getSetting = (key: string) => allSettings?.find((r) => r.key === key)?.value;
+
+  const rkEnabled = getSetting("robokassa_enabled") === "true";
+  if (rkEnabled) {
+    const testMode = getSetting("robokassa_test_mode") === "true";
+    const login = getSetting("robokassa_login")?.trim();
+    const pass1 = (testMode ? getSetting("robokassa_pass1_test") : getSetting("robokassa_pass1"))?.trim();
+    if (login && pass1) {
+      const { buildRobokassaPaymentUrl } = await import("./robokassa.server");
+      const outSum = Number(total).toFixed(2);
+      const paymentUrl = buildRobokassaPaymentUrl({
+        login,
+        pass1,
+        outSum,
+        invId: order.id as number,
+        description: `Заказ #${order.id}`,
+        isTest: testMode,
+      });
+
+      await setState(telegram_id, { mode: "awaiting_payment", pending_order_id: order.id as number });
+      await tg("sendMessage", {
+        chat_id,
+        text:
+          `🧾 <b>Заказ #${order.id}</b> создан.\n\n` +
+          `Сумма к оплате: <b>${formatMoney(total, currency)}</b>\n\n` +
+          `Нажмите кнопку ниже для оплаты через Robokassa — после оплаты файлы придут автоматически.`,
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [[{ text: "💳 Оплатить через Robokassa", url: paymentUrl }]],
+        },
+      });
+      return;
+    }
+  }
+
   await setState(telegram_id, { mode: "awaiting_proof", pending_order_id: order.id as number });
 
   await tg("sendMessage", {
     chat_id,
-    text: `🧾 <b>Заказ #${order.id}</b> создан.\n\nСумма к оплате: <b>${total} ${currency}</b>\n\n${method!.instructions}\n\nПосле оплаты <b>пришлите скриншот</b> (фото) в этот чат — продавец проверит и пришлёт файлы.`,
+    text: `🧾 <b>Заказ #${order.id}</b> создан.\n\nСумма к оплате: <b>${formatMoney(total, currency)}</b>\n\n${method!.instructions}\n\nПосле оплаты <b>пришлите скриншот</b> (фото) в этот чат — продавец проверит и пришлёт файлы.`,
     parse_mode: "HTML",
   });
 }
@@ -1064,7 +1110,7 @@ export async function handleUpdate(update: any) {
       return showSearch(chat_id, user, msg.text);
     }
 
-    if (!user.state?.country_code && msg.text && ["📚 Каталог", "🔍 Поиск", "🛒 Корзина", "📋 Мои заказы"].includes(msg.text)) {
+    if (!user.state?.country_code && msg.text && ["📚 Каталог", "🔍 Поиск", "🛒 Корзина", "📋 Мои заказы", "ℹ️ Информация"].includes(msg.text)) {
       await askCountry(chat_id, from.id);
       return;
     }
@@ -1084,6 +1130,27 @@ export async function handleUpdate(update: any) {
         return showCart(chat_id, user);
       case "📋 Мои заказы":
         return showMyOrders(chat_id, from.id);
+      case "ℹ️ Информация": {
+        const base = originFromState();
+        await tg("sendMessage", {
+          chat_id,
+          text:
+            `ℹ️ <b>Информация о магазине</b>\n\n` +
+            `Ниже — обязательные документы и реквизиты.\n` +
+            `Откройте ссылки в браузере:`,
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📄 Договор оферты", url: `${base}/legal/offer` }],
+              [{ text: "🔒 Политика конфиденциальности", url: `${base}/legal/privacy` }],
+              [{ text: "🏦 Реквизиты", url: `${base}/legal/requisites` }],
+              [{ text: "👤 О продавце", url: `${base}/legal/about` }],
+            ],
+          },
+          disable_web_page_preview: true,
+        });
+        return;
+      }
       case "💬 Связаться с автором": {
         const s = await db();
         const { data: setting } = await s
