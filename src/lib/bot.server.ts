@@ -984,6 +984,10 @@ export async function handleUpdate(update: any) {
         });
       }
       if (!user.state?.country_code) {
+        await sendMain(
+          chat_id,
+          `Привет, ${user.first_name || "друг"}! Добро пожаловать в магазин.\n\nСначала выберите страну — или откройте «ℹ️ Информация».`,
+        );
         await askCountry(chat_id, from.id);
       } else {
         await sendMain(chat_id, `Привет, ${user.first_name || "друг"}! Добро пожаловать в магазин.`);
@@ -1110,7 +1114,7 @@ export async function handleUpdate(update: any) {
       return showSearch(chat_id, user, msg.text);
     }
 
-    if (!user.state?.country_code && msg.text && ["📚 Каталог", "🔍 Поиск", "🛒 Корзина", "📋 Мои заказы", "ℹ️ Информация"].includes(msg.text)) {
+    if (!user.state?.country_code && msg.text && ["📚 Каталог", "🔍 Поиск", "🛒 Корзина", "📋 Мои заказы"].includes(msg.text)) {
       await askCountry(chat_id, from.id);
       return;
     }
