@@ -30,3 +30,41 @@ export const saveSetting = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+export const getLegalDocUploadUrl = createServerFn({ method: "POST" })
+  .validator((d: unknown) =>
+    z
+      .object({
+        kind: z.enum(["offer", "privacy"]),
+        filename: z.string().min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const ext = (data.filename.split(".").pop() || "pdf").toLowerCase().slice(0, 10);
+    const key = `${data.kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const s = await db();
+    const { data: signed, error } = await s.storage.from("legal-docs").createSignedUploadUrl(key);
+    if (error || !signed) throw new Error(error?.message || "Upload error");
+    return { path: key, signedUrl: signed.signedUrl, filename: data.filename };
+  });
+
+export const clearLegalDocFn = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ kind: z.enum(["offer", "privacy"]) }).parse(d))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const s = await db();
+    const pathKey = data.kind === "offer" ? "legal_offer_file" : "legal_privacy_file";
+    const nameKey = data.kind === "offer" ? "legal_offer_filename" : "legal_privacy_filename";
+    const { data: row } = await s.from("app_settings").select("value").eq("key", pathKey).maybeSingle();
+    const path = row?.value?.trim();
+    if (path) {
+      await s.storage.from("legal-docs").remove([path]);
+    }
+    await s.from("app_settings").upsert([
+      { key: pathKey, value: "", updated_at: new Date().toISOString() },
+      { key: nameKey, value: "", updated_at: new Date().toISOString() },
+    ]);
+    return { ok: true as const };
+  });

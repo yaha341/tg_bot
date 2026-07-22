@@ -54,6 +54,7 @@ export const resetAllData = createServerFn({ method: "POST" }).handler(async () 
   await emptyBucket("product-images");
   await emptyBucket("product-files");
   await emptyBucket("payment-proofs");
+  await emptyBucket("legal-docs");
 
   return { ok: true as const };
 });

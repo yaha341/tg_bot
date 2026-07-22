@@ -1,10 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const SLUGS = {
-  offer: { key: "legal_offer_html", title: "Договор оферты" },
-  privacy: { key: "legal_privacy_html", title: "Политика конфиденциальности" },
-  requisites: { key: "legal_seller_details", title: "Реквизиты" },
-  about: { key: "legal_about_html", title: "О продавце" },
+  offer: {
+    htmlKey: "legal_offer_html",
+    fileKey: "legal_offer_file",
+    nameKey: "legal_offer_filename",
+    title: "Договор оферты",
+  },
+  privacy: {
+    htmlKey: "legal_privacy_html",
+    fileKey: "legal_privacy_file",
+    nameKey: "legal_privacy_filename",
+    title: "Политика конфиденциальности",
+  },
+  requisites: {
+    htmlKey: "legal_seller_details",
+    fileKey: null,
+    nameKey: null,
+    title: "Реквизиты",
+  },
+  about: {
+    htmlKey: "legal_about_html",
+    fileKey: null,
+    nameKey: null,
+    title: "О продавце",
+  },
 } as const;
 
 type Slug = keyof typeof SLUGS;
@@ -41,6 +61,14 @@ ${bodyHtml}
 </html>`;
 }
 
+function contentTypeForName(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase();
+  if (ext === "pdf") return "application/pdf";
+  if (ext === "doc") return "application/msword";
+  if (ext === "docx") return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  return "application/octet-stream";
+}
+
 export const Route = createFileRoute("/legal/$slug")({
   server: {
     handlers: {
@@ -52,16 +80,33 @@ export const Route = createFileRoute("/legal/$slug")({
 
         const meta = SLUGS[slug];
         const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
-        const { data } = await supabaseAdmin
-          .from("app_settings")
-          .select("value")
-          .eq("key", meta.key)
-          .maybeSingle();
+        const keys = [meta.htmlKey, meta.fileKey, meta.nameKey].filter(Boolean) as string[];
+        const { data: rows } = await supabaseAdmin.from("app_settings").select("key, value").in("key", keys);
+        const get = (key: string | null) =>
+          key ? (rows?.find((r) => r.key === key)?.value as string | undefined)?.trim() || "" : "";
 
-        const raw = (data?.value as string | undefined)?.trim() || "";
+        const filePath = get(meta.fileKey);
+        if (filePath) {
+          const fileName = get(meta.nameKey) || filePath;
+          const { data, error } = await supabaseAdmin.storage.from("legal-docs").download(filePath);
+          if (error || !data) {
+            return new Response("Файл документа не найден", { status: 404 });
+          }
+          const buf = await data.arrayBuffer();
+          const asciiName = fileName.replace(/[^\x20-\x7E]/g, "_") || "document.pdf";
+          return new Response(buf, {
+            headers: {
+              "Content-Type": data.type || contentTypeForName(fileName),
+              "Content-Disposition": `inline; filename="${asciiName}"`,
+              "Cache-Control": "public, max-age=300",
+            },
+          });
+        }
+
+        const raw = get(meta.htmlKey);
         let bodyHtml: string;
         if (!raw) {
-          bodyHtml = `<h1>${escapeHtml(meta.title)}</h1><p>Документ пока не заполнен. Укажите текст в админ-панели → Настройки.</p>`;
+          bodyHtml = `<h1>${escapeHtml(meta.title)}</h1><p>Документ пока не загружен. Загрузите файл в админ-панели → Настройки.</p>`;
         } else if (slug === "requisites") {
           bodyHtml = `<h1>${escapeHtml(meta.title)}</h1><pre>${escapeHtml(raw)}</pre>`;
         } else if (raw.includes("<")) {

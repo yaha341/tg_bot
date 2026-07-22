@@ -6,7 +6,7 @@ import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
 import { Checkbox } from "@/components-ui/checkbox";
 import { Textarea } from "@/components-ui/textarea";
-import { getSettings, saveSetting } from "@/lib/settings.functions";
+import { getSettings, saveSetting, getLegalDocUploadUrl, clearLegalDocFn } from "@/lib/settings.functions";
 import { resetAllData } from "@/lib/reset.functions";
 
 const ROLES = [
@@ -35,10 +35,13 @@ function SettingsPage() {
   const [rkSaved, setRkSaved] = useState(false);
 
   const [legalSeller, setLegalSeller] = useState("");
-  const [legalOffer, setLegalOffer] = useState("");
-  const [legalPrivacy, setLegalPrivacy] = useState("");
   const [legalAbout, setLegalAbout] = useState("");
+  const [offerFile, setOfferFile] = useState("");
+  const [offerFileName, setOfferFileName] = useState("");
+  const [privacyFile, setPrivacyFile] = useState("");
+  const [privacyFileName, setPrivacyFileName] = useState("");
   const [legalSaved, setLegalSaved] = useState(false);
+  const [uploadingKind, setUploadingKind] = useState<"offer" | "privacy" | null>(null);
 
   useEffect(() => {
     setAdminChatId(settings.data?.admin_chat_id ?? "");
@@ -51,9 +54,11 @@ function SettingsPage() {
     setRkPass1Test(settings.data?.robokassa_pass1_test ?? "");
     setRkPass2Test(settings.data?.robokassa_pass2_test ?? "");
     setLegalSeller(settings.data?.legal_seller_details ?? "");
-    setLegalOffer(settings.data?.legal_offer_html ?? "");
-    setLegalPrivacy(settings.data?.legal_privacy_html ?? "");
     setLegalAbout(settings.data?.legal_about_html ?? "");
+    setOfferFile(settings.data?.legal_offer_file ?? "");
+    setOfferFileName(settings.data?.legal_offer_filename ?? "");
+    setPrivacyFile(settings.data?.legal_privacy_file ?? "");
+    setPrivacyFileName(settings.data?.legal_privacy_filename ?? "");
   }, [settings.data]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://your-app.vercel.app";
@@ -81,12 +86,59 @@ function SettingsPage() {
 
   async function onSaveLegal() {
     await saveSetting({ data: { key: "legal_seller_details", value: legalSeller } });
-    await saveSetting({ data: { key: "legal_offer_html", value: legalOffer } });
-    await saveSetting({ data: { key: "legal_privacy_html", value: legalPrivacy } });
     await saveSetting({ data: { key: "legal_about_html", value: legalAbout } });
     qc.invalidateQueries({ queryKey: ["settings"] });
     setLegalSaved(true);
     setTimeout(() => setLegalSaved(false), 2000);
+  }
+
+  async function onUploadLegal(kind: "offer" | "privacy", file: File | null) {
+    if (!file) return;
+    setUploadingKind(kind);
+    try {
+      const { path, signedUrl, filename } = await getLegalDocUploadUrl({
+        data: { kind, filename: file.name },
+      });
+      const res = await fetch(signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "application/pdf" },
+      });
+      if (!res.ok) throw new Error(`Не удалось загрузить ${file.name}`);
+      const pathKey = kind === "offer" ? "legal_offer_file" : "legal_privacy_file";
+      const nameKey = kind === "offer" ? "legal_offer_filename" : "legal_privacy_filename";
+      await saveSetting({ data: { key: pathKey, value: path } });
+      await saveSetting({ data: { key: nameKey, value: filename } });
+      if (kind === "offer") {
+        setOfferFile(path);
+        setOfferFileName(filename);
+      } else {
+        setPrivacyFile(path);
+        setPrivacyFileName(filename);
+      }
+      await qc.invalidateQueries({ queryKey: ["settings"] });
+    } catch (e: any) {
+      alert(e.message || "Ошибка загрузки");
+    } finally {
+      setUploadingKind(null);
+    }
+  }
+
+  async function onClearLegal(kind: "offer" | "privacy") {
+    if (!confirm(kind === "offer" ? "Удалить файл оферты?" : "Удалить файл политики?")) return;
+    try {
+      await clearLegalDocFn({ data: { kind } });
+      if (kind === "offer") {
+        setOfferFile("");
+        setOfferFileName("");
+      } else {
+        setPrivacyFile("");
+        setPrivacyFileName("");
+      }
+      await qc.invalidateQueries({ queryKey: ["settings"] });
+    } catch (e: any) {
+      alert(e.message);
+    }
   }
 
   const [resetting, setResetting] = useState(false);
@@ -190,12 +242,44 @@ function SettingsPage() {
           <Textarea rows={5} value={legalSeller} onChange={(e) => setLegalSeller(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Договор оферты (HTML или текст)</Label>
-          <Textarea rows={8} value={legalOffer} onChange={(e) => setLegalOffer(e.target.value)} className="font-mono text-xs" />
+          <Label>Договор оферты (файл PDF / DOC / DOCX)</Label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            disabled={uploadingKind !== null}
+            onChange={(e) => onUploadLegal("offer", e.target.files?.[0] ?? null)}
+          />
+          {uploadingKind === "offer" && <p className="text-sm text-muted-foreground">Загрузка…</p>}
+          {offerFile && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <a className="text-primary underline" href={`${origin}/legal/offer`} target="_blank" rel="noreferrer">
+                {offerFileName || offerFile}
+              </a>
+              <Button type="button" size="sm" variant="ghost" onClick={() => onClearLegal("offer")}>
+                Удалить
+              </Button>
+            </div>
+          )}
         </div>
         <div className="space-y-2">
-          <Label>Политика конфиденциальности (HTML или текст)</Label>
-          <Textarea rows={8} value={legalPrivacy} onChange={(e) => setLegalPrivacy(e.target.value)} className="font-mono text-xs" />
+          <Label>Политика конфиденциальности (файл PDF / DOC / DOCX)</Label>
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            disabled={uploadingKind !== null}
+            onChange={(e) => onUploadLegal("privacy", e.target.files?.[0] ?? null)}
+          />
+          {uploadingKind === "privacy" && <p className="text-sm text-muted-foreground">Загрузка…</p>}
+          {privacyFile && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <a className="text-primary underline" href={`${origin}/legal/privacy`} target="_blank" rel="noreferrer">
+                {privacyFileName || privacyFile}
+              </a>
+              <Button type="button" size="sm" variant="ghost" onClick={() => onClearLegal("privacy")}>
+                Удалить
+              </Button>
+            </div>
+          )}
         </div>
         <div className="space-y-2">
           <Label>О продавце / авторе (HTML или текст)</Label>
