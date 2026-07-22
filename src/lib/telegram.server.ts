@@ -24,13 +24,23 @@ export async function tgSendMultipart(
   fields: Record<string, string | number>,
   file: { field: string; filename: string; bytes: Uint8Array; contentType: string },
 ) {
+  return tgSendMultipartMany(method, fields, [file]);
+}
+
+export async function tgSendMultipartMany(
+  method: string,
+  fields: Record<string, string | number>,
+  files: Array<{ field: string; filename: string; bytes: Uint8Array; contentType: string }>,
+) {
   const fd = new FormData();
   for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
-  fd.append(
-    file.field,
-    new Blob([file.bytes as BlobPart], { type: file.contentType }),
-    file.filename,
-  );
+  for (const file of files) {
+    fd.append(
+      file.field,
+      new Blob([file.bytes as BlobPart], { type: file.contentType }),
+      file.filename,
+    );
+  }
   const res = await fetch(`${TG_API}/bot${token()}/${method}`, {
     method: "POST",
     body: fd,

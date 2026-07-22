@@ -1,4 +1,4 @@
-import { tg } from "./telegram.server";
+import { tg, tgSendMultipart, tgSendMultipartMany } from "./telegram.server";
 
 const BATCH_SIZE = 25;
 const SEND_DELAY_MS = 80;
@@ -19,18 +19,24 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function originFromEnv(): string {
-  return (
-    process.env.PUBLIC_APP_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-    "http://localhost:3000"
-  );
+type DownloadedImage = { bytes: Uint8Array; filename: string; contentType: string };
+
+function broadcastStorageKey(path: string): string {
+  if (path.startsWith("broadcast-images/")) return path.slice("broadcast-images/".length);
+  return path;
 }
 
-function broadcastImageUrl(path: string): string {
-  const key = path.includes("/") ? path : `broadcast-images/${path}`;
-  return `${originFromEnv()}/api/public/img/${key}`;
+async function downloadBroadcastImage(path: string): Promise<DownloadedImage> {
+  const key = broadcastStorageKey(path);
+  const s = await db();
+  const { data, error } = await s.storage.from("broadcast-images").download(key);
+  if (error || !data) throw new Error(`Не удалось загрузить фото: ${key}`);
+  const bytes = new Uint8Array(await data.arrayBuffer());
+  return {
+    bytes,
+    filename: key,
+    contentType: data.type || "image/jpeg",
+  };
 }
 
 async function db() {
@@ -66,11 +72,14 @@ export async function resolveAudienceIds(
   }
 
   if (audience_type === "country") {
-    const code = audience_filter?.country_code?.trim();
+    const code = audience_filter?.country_code?.trim().toUpperCase();
     if (!code) return [];
     const { data: users } = await s.from("bot_users").select("telegram_id, state");
     return (users ?? [])
-      .filter((u) => (u.state as { country_code?: string } | null)?.country_code === code)
+      .filter(
+        (u) =>
+          ((u.state as { country_code?: string } | null)?.country_code ?? "").toUpperCase() === code,
+      )
       .map((u) => u.telegram_id as number);
   }
 
@@ -107,6 +116,57 @@ async function tgOrThrow(method: string, payload: unknown) {
   return res;
 }
 
+async function tgMultipartOrThrow(
+  method: string,
+  fields: Record<string, string | number>,
+  files: Array<{ field: string; filename: string; bytes: Uint8Array; contentType: string }>,
+) {
+  const res =
+    files.length === 1
+      ? await tgSendMultipart(method, fields, files[0])
+      : await tgSendMultipartMany(method, fields, files);
+  if (!res.ok) {
+    throw new Error(res.description || `${method} failed`);
+  }
+  return res;
+}
+
+async function sendBroadcastPhotos(telegram_id: number, photoPaths: string[]) {
+  const paths = photoPaths.slice(0, TELEGRAM_MEDIA_GROUP_MAX);
+  if (paths.length === 0) return;
+
+  const images = await Promise.all(paths.map(downloadBroadcastImage));
+
+  if (images.length === 1) {
+    const img = images[0];
+    await tgMultipartOrThrow(
+      "sendPhoto",
+      { chat_id: telegram_id },
+      [{ field: "photo", filename: img.filename, bytes: img.bytes, contentType: img.contentType }],
+    );
+    return;
+  }
+
+  const media = images.map((_, idx) => ({
+    type: "photo",
+    media: `attach://photo${idx}`,
+  }));
+
+  await tgMultipartOrThrow(
+    "sendMediaGroup",
+    {
+      chat_id: telegram_id,
+      media: JSON.stringify(media),
+    },
+    images.map((img, idx) => ({
+      field: `photo${idx}`,
+      filename: img.filename,
+      bytes: img.bytes,
+      contentType: img.contentType,
+    })),
+  );
+}
+
 export async function sendBroadcastMessage(
   telegram_id: number,
   payload: Pick<BroadcastPayload, "message_text" | "photo_paths" | "product_ids" | "show_catalog">,
@@ -126,25 +186,16 @@ export async function sendBroadcastMessage(
     return;
   }
 
-  if (photos.length === 1) {
-    await tgOrThrow("sendPhoto", {
+  if (text) {
+    await tgOrThrow("sendMessage", {
       chat_id: telegram_id,
-      photo: broadcastImageUrl(photos[0]),
-      caption: text,
+      text,
       parse_mode: "HTML",
-      ...(reply_markup ? { reply_markup } : {}),
+      disable_web_page_preview: true,
     });
-    return;
   }
 
-  await tgOrThrow("sendMediaGroup", {
-    chat_id: telegram_id,
-    media: photos.map((path, idx) => ({
-      type: "photo",
-      media: broadcastImageUrl(path),
-      ...(idx === 0 ? { caption: text, parse_mode: "HTML" } : {}),
-    })),
-  });
+  await sendBroadcastPhotos(telegram_id, photos);
 
   if (reply_markup) {
     await tgOrThrow("sendMessage", {

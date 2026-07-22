@@ -5,6 +5,13 @@ import { Button } from "@/components-ui/button";
 import { Checkbox } from "@/components-ui/checkbox";
 import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components-ui/select";
 import { Textarea } from "@/components-ui/textarea";
 import { EmojiInsertBar, insertAtCursor } from "@/components-ui/emoji-insert-bar";
 import {
@@ -17,6 +24,7 @@ import {
   sendTestBroadcastFn,
   startBroadcastFn,
 } from "@/lib/broadcast.functions";
+import { listPaymentMethods } from "@/lib/payment-methods.functions";
 import { listProducts } from "@/lib/products.functions";
 
 export const Route = createFileRoute("/admin/broadcast")({
@@ -36,6 +44,7 @@ const audienceLabels: Record<AudienceType, string> = {
 function BroadcastPage() {
   const qc = useQueryClient();
   const products = useQuery({ queryKey: ["products"], queryFn: () => listProducts() });
+  const paymentMethods = useQuery({ queryKey: ["payment-methods"], queryFn: () => listPaymentMethods() });
   const broadcasts = useQuery({ queryKey: ["broadcasts"], queryFn: () => listBroadcastsFn() });
 
   const [messageText, setMessageText] = useState("");
@@ -82,7 +91,7 @@ function BroadcastPage() {
       product_ids: selectedProducts,
       show_catalog: showCatalog,
       audience_type: audienceType,
-      audience_filter: audienceType === "country" ? { country_code: countryCode.trim() } : undefined,
+      audience_filter: audienceType === "country" ? { country_code: countryCode.trim().toUpperCase() } : undefined,
     }),
     [messageText, photoPaths, selectedProducts, showCatalog, audienceType, countryCode],
   );
@@ -92,7 +101,7 @@ function BroadcastPage() {
     previewBroadcastAudience({
       data: {
         audience_type: audienceType,
-        country_code: audienceType === "country" ? countryCode.trim() : undefined,
+        country_code: audienceType === "country" ? countryCode.trim().toUpperCase() : undefined,
       },
     })
       .then((res) => {
@@ -171,6 +180,15 @@ function BroadcastPage() {
   }
 
   const productList = (products.data ?? []) as any[];
+  const countryOptions = ((paymentMethods.data ?? []) as any[]).filter((m) => m.is_active);
+
+  function broadcastPhotoUrl(path: string) {
+    return `/api/public/img/broadcast-images/${encodeURIComponent(path)}`;
+  }
+
+  function removePhoto(path: string) {
+    setPhotoPaths((prev) => prev.filter((p) => p !== path));
+  }
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -195,7 +213,23 @@ function BroadcastPage() {
               ))}
           </div>
           {audienceType === "country" && (
-            <Input value={countryCode} onChange={(e) => setCountryCode(e.target.value)} placeholder="RU / KZ" className="max-w-[120px]" />
+            <div className="space-y-1">
+              <Select value={countryCode} onValueChange={setCountryCode}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Выберите страну" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countryOptions.map((m) => (
+                    <SelectItem key={m.id} value={m.country_code}>
+                      {m.country_name} ({m.country_code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Фильтр по стране, которую пользователь выбрал в боте при первом входе. RU — Россия, KZ — Казахстан.
+              </p>
+            </div>
           )}
           <p className="text-sm text-muted-foreground">Получателей: ~{audienceCount ?? "…"}</p>
         </div>
@@ -215,13 +249,30 @@ function BroadcastPage() {
         <div className="space-y-2">
           <Label>Фото (до 10, альбом)</Label>
           <Input type="file" accept="image/*" multiple disabled={uploading || photoPaths.length >= 10} onChange={(e) => onUploadPhotos(e.target.files)} />
+          {uploading && <p className="text-sm text-muted-foreground">Загрузка…</p>}
           {photoPaths.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {photoPaths.map((p) => (
-                <span key={p} className="text-xs bg-muted px-2 py-1 rounded">{p}</span>
-              ))}
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-3">
+                {photoPaths.map((p) => (
+                  <div key={p} className="relative group">
+                    <img
+                      src={broadcastPhotoUrl(p)}
+                      alt={p}
+                      className="h-20 w-20 object-cover rounded-md border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(p)}
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs leading-none opacity-90 hover:opacity-100"
+                      title="Удалить"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
               <Button type="button" size="sm" variant="ghost" onClick={() => setPhotoPaths([])}>
-                Очистить
+                Очистить все
               </Button>
             </div>
           )}
@@ -255,10 +306,10 @@ function BroadcastPage() {
         </div>
 
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button variant="outline" onClick={onTestSend} disabled={busy}>
+          <Button variant="outline" onClick={onTestSend} disabled={busy || uploading}>
             Отправить себе (тест)
           </Button>
-          <Button onClick={onStart} disabled={busy || audienceType === "test"}>
+          <Button onClick={onStart} disabled={busy || uploading || audienceType === "test"}>
             🚀 Запустить рассылку
           </Button>
         </div>
