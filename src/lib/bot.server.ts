@@ -1165,14 +1165,26 @@ export async function handleUpdate(update: any) {
       }
 
       // Сохраняем чек в storage и переводим заказ в "awaiting_confirmation".
-      // Даже если скачивание не удалось — переводим заказ, чтобы покупатель не зависал,
-      // и уведомляем админа, что чек нужно запросить вручную.
+      // Даже если storage недоступен — пересылаем file_id админу, чтобы чек не потерялся.
       let proofSaved = false;
       if (dl) {
         const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
+        try {
+          const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+          if (!buckets?.some((b) => b.name === "payment-proofs")) {
+            await supabaseAdmin.storage.createBucket("payment-proofs", {
+              public: false,
+              fileSizeLimit: 20 * 1024 * 1024,
+            });
+          }
+        } catch (e) {
+          console.error("[bot] ensure payment-proofs bucket", e);
+        }
+
         const key = `order-${orderId}/${Date.now()}.${fileExt}`;
-        const upRes = await supabaseAdmin.storage.from("payment-proofs").upload(key, dl.bytes, {
-          contentType: dl.mime,
+        const body = new Blob([dl.bytes as BlobPart], { type: dl.mime || "application/octet-stream" });
+        const upRes = await supabaseAdmin.storage.from("payment-proofs").upload(key, body, {
+          contentType: dl.mime || "application/octet-stream",
           upsert: true,
         });
         if (!upRes.error) {
@@ -1181,24 +1193,33 @@ export async function handleUpdate(update: any) {
             .update({ payment_proof_path: key, status: "awaiting_confirmation" })
             .eq("id", orderId);
           proofSaved = true;
+        } else {
+          console.error("[bot] payment-proofs upload failed", upRes.error);
         }
+      } else {
+        console.error("[bot] failed to download proof from Telegram", { orderId, proofKind });
       }
 
       await setState(from.id, { ...user.state, mode: "idle", pending_order_id: undefined });
 
-      if (proofSaved) {
-        await tg("sendMessage", {
-          chat_id,
-          text: `📨 Спасибо! Чек получен. Заказ #${orderId} отправлен на проверку. Как только продавец подтвердит оплату — бот пришлёт файлы.`,
-          reply_markup: mainMenu(),
-        });
-        await notifyAdminNewOrder(orderId, proofFileId, proofKind);
-      } else {
-        const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
+      const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
+      if (!proofSaved) {
         await supabaseAdmin
           .from("orders")
           .update({ status: "awaiting_confirmation" })
           .eq("id", orderId);
+      }
+
+      if (proofSaved || proofFileId) {
+        await tg("sendMessage", {
+          chat_id,
+          text: proofSaved
+            ? `📨 Спасибо! Чек получен. Заказ #${orderId} отправлен на проверку. Как только продавец подтвердит оплату — бот пришлёт файлы.`
+            : `📨 Чек получен и переслан продавцу. Заказ #${orderId} на проверке. Если нужно — можно отправить чек ещё раз.`,
+          reply_markup: mainMenu(),
+        });
+        await notifyAdminNewOrder(orderId, proofFileId, proofKind);
+      } else {
         await tg("sendMessage", {
           chat_id,
           text: `⚠️ Не удалось сохранить чек заказа #${orderId}. Продавец проверит заказ вручную. Если хотите — попробуйте отправить чек ещё раз.`,
