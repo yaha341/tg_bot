@@ -4,9 +4,13 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Files per serverless run — keeps under Vercel timeout while still sending real documents. */
-const BATCH_SIZE = 3;
-const ITEM_DELAY_MS = 400;
+/** Files per serverless run. Override with DELIVERY_BATCH_SIZE (1–20). */
+const BATCH_SIZE = Math.min(20, Math.max(1, Number(process.env.DELIVERY_BATCH_SIZE) || 8));
+const ITEM_DELAY_MS = 350;
+
+/** Max file size for auto send (MB). Default 100. Cloud Bot API often rejects >50MB unless TELEGRAM_API_BASE=Local Bot API. */
+const MAX_FILE_BYTES =
+  Math.min(200, Math.max(1, Number(process.env.DELIVERY_MAX_FILE_MB) || 100)) * 1024 * 1024;
 
 const DELIVERABLE_STATUSES = ["awaiting_confirmation", "awaiting_payment"] as const;
 
@@ -248,8 +252,8 @@ export async function sendFileToUser(
     }
   }
 
-  const TG_MAX = 49 * 1024 * 1024; // Bot API ~50 MB
-  const MULTIPART_COMFORT = 15 * 1024 * 1024;
+  const TG_MAX = MAX_FILE_BYTES;
+  const MULTIPART_COMFORT = 20 * 1024 * 1024;
 
   async function sendViaTelegramUrl() {
     if (!signed?.signedUrl || !telegramUrlTypes.has(ext)) return false;
@@ -295,17 +299,17 @@ export async function sendFileToUser(
     return;
   }
 
-  // Over Bot API limit — try URL delivery for pdf/zip before giving up
+  // Over configured limit
   if (bytes.byteLength > TG_MAX) {
     if (await sendViaTelegramUrl()) return;
     await tg("sendMessage", {
       chat_id,
-      text: `⚠️ Файл «${caption}» больше 50 МБ (${Math.round(bytes.byteLength / (1024 * 1024))} МБ) — лимит Telegram. Продавец вышлет вручную.`,
+      text: `⚠️ Файл «${caption}» слишком большой (${Math.round(bytes.byteLength / (1024 * 1024))} МБ, лимит ${Math.round(TG_MAX / (1024 * 1024))} МБ). Продавец вышлет вручную.`,
     });
     return;
   }
 
-  // Prefer multipart for everything under 50 MB (incl. 26–45 MB)
+  // Multipart upload — works up to ~50MB on api.telegram.org, up to 100MB+ on Local Bot API
   for (let i = 0; i < (quantity || 1); i++) {
     const res = await tgSendMultipart(
       "sendDocument",
@@ -314,11 +318,14 @@ export async function sendFileToUser(
     );
     if (!res?.ok) {
       console.error("[orders] sendDocument multipart failed", res);
-      // Fallback: Telegram fetches pdf/zip by URL
       if (await sendViaTelegramUrl()) return;
+      const hint =
+        bytes.byteLength > 50 * 1024 * 1024
+          ? " Для файлов >50 МБ нужен Local Bot API (TELEGRAM_API_BASE)."
+          : "";
       await tg("sendMessage", {
         chat_id,
-        text: `⚠️ Не удалось отправить файл «${caption}». Продавец вышлет вручную.`,
+        text: `⚠️ Не удалось отправить файл «${caption}» (${Math.round(bytes.byteLength / (1024 * 1024))} МБ).${hint}`,
       });
       return;
     }

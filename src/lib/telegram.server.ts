@@ -1,4 +1,7 @@
-const TG_API = "https://api.telegram.org";
+/** Telegram Bot API base. Use Local Bot API for files >50MB (up to ~2GB). */
+function apiBase(): string {
+  return (process.env.TELEGRAM_API_BASE || "https://api.telegram.org").replace(/\/$/, "");
+}
 
 function token() {
   const t = process.env.TELEGRAM_BOT_TOKEN;
@@ -6,8 +9,12 @@ function token() {
   return t;
 }
 
+function botUrl(method: string) {
+  return `${apiBase()}/bot${token()}/${method}`;
+}
+
 export async function tg(method: string, payload: unknown) {
-  const res = await fetch(`${TG_API}/bot${token()}/${method}`, {
+  const res = await fetch(botUrl(method), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -41,7 +48,7 @@ export async function tgSendMultipartMany(
       file.filename,
     );
   }
-  const res = await fetch(`${TG_API}/bot${token()}/${method}`, {
+  const res = await fetch(botUrl(method), {
     method: "POST",
     body: fd,
   });
@@ -57,7 +64,7 @@ export async function downloadTelegramFile(file_id: string): Promise<{ bytes: Ui
   // @ts-expect-error dynamic
   const path = info?.result?.file_path as string | undefined;
   if (!path) return null;
-  const res = await fetch(`${TG_API}/file/bot${token()}/${path}`);
+  const res = await fetch(`${apiBase()}/file/bot${token()}/${path}`);
   if (!res.ok) return null;
   const bytes = new Uint8Array(await res.arrayBuffer());
   const mime = res.headers.get("content-type") || "application/octet-stream";
