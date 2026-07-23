@@ -83,6 +83,12 @@ export async function ensureTelegramWebhook(): Promise<EnsureWebhookResult> {
       ((after.result as { url?: string } | undefined)?.url || "").trim() || expected;
 
     console.log("[webhook] restored", { previousUrl, afterUrl });
+    try {
+      const { syncBotPublicDescription } = await import("./bot.server");
+      await syncBotPublicDescription();
+    } catch (e) {
+      console.error("[webhook] syncBotPublicDescription", e);
+    }
     return {
       ok: true,
       action: "set",

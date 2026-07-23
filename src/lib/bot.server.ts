@@ -21,8 +21,65 @@ function originFromState(): string {
     process.env.PUBLIC_APP_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
-    "http://localhost:3000"
+    "https://tg-bot-ashen-one.vercel.app"
   ).replace(/\/$/, "");
+}
+
+/** Robokassa: согласие + ссылки на оферту и политику (HTML для сообщений в чате). */
+function legalConsentHtml(base: string): string {
+  return (
+    `Нажимая /start, вы соглашаетесь с:\n` +
+    `• <a href="${base}/legal/offer">Условиями использования</a>\n` +
+    `${base}/legal/offer\n` +
+    `• <a href="${base}/legal/privacy">Политикой конфиденциальности</a>\n` +
+    `${base}/legal/privacy`
+  );
+}
+
+/** Текст профиля бота («Что умеет этот бот?») — plain text, лимит Telegram 512. */
+export function botPublicDescription(base = originFromState()): string {
+  const text =
+    `📚 Каталог цифровых учебных материалов.\n` +
+    `→ Выбор материалов и мгновенная выдача файлов после оплаты\n` +
+    `→ Оплата картой / по реквизитам\n` +
+    `→ Поддержка автора\n\n` +
+    `Нажимая /start, вы соглашаетесь с:\n` +
+    `• Условиями использования\n` +
+    `${base}/legal/offer\n` +
+    `• Политикой конфиденциальности\n` +
+    `${base}/legal/privacy`;
+  return text.slice(0, 512);
+}
+
+export async function syncBotPublicDescription() {
+  const description = botPublicDescription();
+  try {
+    await tg("setMyDescription", { description });
+    await tg("setMyShortDescription", {
+      short_description: "Каталог материалов. Нажимая /start, вы принимаете оферту и политику конфиденциальности.".slice(
+        0,
+        120,
+      ),
+    });
+  } catch (e) {
+    console.error("[bot] setMyDescription failed", e);
+  }
+}
+
+function welcomeStartHtml(firstName: string | null, withCountryHint: boolean): string {
+  const base = originFromState();
+  const name = firstName || "друг";
+  const hint = withCountryHint
+    ? `\n\nСначала выберите страну — или откройте «ℹ️ Информация».`
+    : "";
+  return (
+    `Привет, ${escapeHtml(name)}! Добро пожаловать в магазин.\n\n` +
+    `→ Каталог учебных материалов\n` +
+    `→ Оплата и выдача файлов\n` +
+    `→ Документы и реквизиты — в «ℹ️ Информация»\n\n` +
+    legalConsentHtml(base) +
+    hint
+  );
 }
 
 function imageUrl(path: string): string {
@@ -89,8 +146,23 @@ function mainMenu() {
   };
 }
 
-async function sendMain(chat_id: number, text = "Выберите раздел:") {
-  await tg("sendMessage", { chat_id, text, reply_markup: mainMenu() });
+async function sendMain(chat_id: number, text = "Выберите раздел:", opts?: { parse_mode?: "HTML" }) {
+  await tg("sendMessage", {
+    chat_id,
+    text,
+    reply_markup: mainMenu(),
+    disable_web_page_preview: true,
+    ...(opts?.parse_mode ? { parse_mode: opts.parse_mode } : {}),
+  });
+}
+
+function legalInlineKeyboard(base: string) {
+  return {
+    inline_keyboard: [
+      [{ text: "📄 Условия использования", url: `${base}/legal/offer` }],
+      [{ text: "🔒 Политика конфиденциальности", url: `${base}/legal/privacy` }],
+    ],
+  };
 }
 
 async function showCategories(chat_id: number, parentId: string | null, userCountryCode?: string, offset = 0) {
@@ -983,15 +1055,22 @@ export async function handleUpdate(update: any) {
           parse_mode: "HTML",
         });
       }
-      if (!user.state?.country_code) {
-        await sendMain(
-          chat_id,
-          `Привет, ${user.first_name || "друг"}! Добро пожаловать в магазин.\n\nСначала выберите страну — или откройте «ℹ️ Информация».`,
-        );
+
+      const base = originFromState();
+      const needCountry = !user.state?.country_code;
+      await tg("sendMessage", {
+        chat_id,
+        text: welcomeStartHtml(user.first_name, needCountry),
+        parse_mode: "HTML",
+        reply_markup: legalInlineKeyboard(base),
+        disable_web_page_preview: true,
+      });
+      await sendMain(chat_id, "Выберите раздел:");
+      if (needCountry) {
         await askCountry(chat_id, from.id);
-      } else {
-        await sendMain(chat_id, `Привет, ${user.first_name || "друг"}! Добро пожаловать в магазин.`);
       }
+      // Keep BotFather profile text in sync (Robokassa / «Что умеет этот бот?»)
+      void syncBotPublicDescription();
       return;
     }
     if (msg.text === "/id") {
@@ -1140,12 +1219,12 @@ export async function handleUpdate(update: any) {
           chat_id,
           text:
             `ℹ️ <b>Информация о магазине</b>\n\n` +
-            `Ниже — обязательные документы и реквизиты.\n` +
-            `Откройте ссылки в браузере:`,
+            `Обязательные документы и реквизиты (требование платёжных систем):\n\n` +
+            legalConsentHtml(base),
           parse_mode: "HTML",
           reply_markup: {
             inline_keyboard: [
-              [{ text: "📄 Договор оферты", url: `${base}/legal/offer` }],
+              [{ text: "📄 Условия использования (оферта)", url: `${base}/legal/offer` }],
               [{ text: "🔒 Политика конфиденциальности", url: `${base}/legal/privacy` }],
               [{ text: "🏦 Реквизиты", url: `${base}/legal/requisites` }],
               [{ text: "👤 О продавце", url: `${base}/legal/about` }],
