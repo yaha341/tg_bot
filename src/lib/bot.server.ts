@@ -962,12 +962,13 @@ export async function handleUpdate(update: any) {
 
         await tg("sendMessage", { chat_id, text: `⏳ Загружаю файл (${lang === "ru" ? "Русский" : "Қазақша"})...` });
 
+        // Always 1 copy — quantity is cart price, not file copies
         await sendFileToUser(
           order.telegram_id,
           path,
           name || "file.bin",
           item.name_snapshot,
-          item.quantity || 1
+          1
         );
 
         // Update delivered_language tracking
