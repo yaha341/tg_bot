@@ -1108,18 +1108,38 @@ export async function handleUpdate(update: any) {
       return;
     }
 
-    // Payment proof (photo OR document, e.g. PDF) while awaiting
-    if (user.state?.mode === "awaiting_proof" && user.state.pending_order_id) {
-      const orderId = user.state.pending_order_id;
+    // Payment proof (photo OR document).
+    // Robokassa sets mode=awaiting_payment; manual path uses awaiting_proof.
+    // Accept receipts in both modes, and for any open awaiting_payment order.
+    const proofModes = new Set(["awaiting_proof", "awaiting_payment"]);
+    let proofOrderId: number | undefined =
+      proofModes.has(String(user.state?.mode || "")) && user.state?.pending_order_id
+        ? Number(user.state.pending_order_id)
+        : undefined;
 
-      // Только фото или документ считаются чеком; иначе подсказка
-      if (!msg.photo && !msg.document) {
-        await tg("sendMessage", {
-          chat_id,
-          text: "📨 Пришлите, пожалуйста, чек об оплате — фото или файл (например, PDF).",
-        });
-        return;
-      }
+    if (!proofOrderId && (msg.photo || msg.document)) {
+      const s = await db();
+      const { data: openOrder } = await s
+        .from("orders")
+        .select("id")
+        .eq("telegram_id", from.id)
+        .eq("status", "awaiting_payment")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (openOrder?.id) proofOrderId = Number(openOrder.id);
+    }
+
+    if (user.state?.mode === "awaiting_proof" && user.state.pending_order_id && !msg.photo && !msg.document) {
+      await tg("sendMessage", {
+        chat_id,
+        text: "📨 Пришлите, пожалуйста, чек об оплате — фото или файл (например, PDF).",
+      });
+      return;
+    }
+
+    if (proofOrderId && (msg.photo || msg.document)) {
+      const orderId = proofOrderId;
 
       // Определяем источник чека и расширение сохраняемого файла.
       // Расширение важно: админ-панель определяет тип чека по расширению пути.
