@@ -49,7 +49,18 @@ export const redeliverOrder = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { deliverOrder } = await import("./orders.server");
     await requireAdmin();
-    return await deliverOrder(data.id, { force: true });
+    // Full re-send from the beginning (files, not links)
+    return await deliverOrder(data.id, { force: true, resume: false });
+  });
+
+/** Continue a stuck «Выдаётся» order from delivery_index (next batch of files). */
+export const continueDeliveryOrder = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ id: z.number().int() }).parse(d))
+  .handler(async ({ data }) => {
+    const { requireAdmin } = await import("./admin-session.server");
+    const { deliverOrder } = await import("./orders.server");
+    await requireAdmin();
+    return await deliverOrder(data.id, { force: true, resume: true });
   });
 
 export const rejectOrder = createServerFn({ method: "POST" })

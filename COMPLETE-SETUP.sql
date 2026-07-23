@@ -103,6 +103,7 @@ CREATE TABLE public.orders (
   status TEXT NOT NULL DEFAULT 'awaiting_payment',
   payment_proof_path TEXT,
   admin_note TEXT,
+  delivery_index INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

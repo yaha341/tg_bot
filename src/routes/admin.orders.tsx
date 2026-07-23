@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components-ui/dialog";
-import { confirmOrder, deleteOrder, listOrders, redeliverOrder, rejectOrder } from "@/lib/orders.functions";
+import { confirmOrder, continueDeliveryOrder, deleteOrder, listOrders, redeliverOrder, rejectOrder } from "@/lib/orders.functions";
 import { useState } from "react";
 
 // Тип чека определяется по расширению сохранённого пути.
@@ -60,6 +60,25 @@ function OrdersPage() {
     try {
       await redeliverOrder({ data: { id } });
       qc.invalidateQueries({ queryKey: ["orders"] });
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setBusy(null);
+    }
+  }
+  async function onContinue(id: number) {
+    if (!confirm(`Продолжить выдачу файлов заказа #${id}? (следующая порция)`)) return;
+    setBusy(id);
+    try {
+      const res = await continueDeliveryOrder({ data: { id } });
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      if ((res as any).pending) {
+        alert(
+          `Отправлена порция файлов (${(res as any).sent}). Ещё осталось — нажмите «Продолжить» снова или дождитесь cron.`,
+        );
+      } else {
+        alert(`Заказ #${id} выдан полностью.`);
+      }
     } catch (e: any) {
       alert(e.message);
     } finally {
@@ -141,7 +160,19 @@ function OrdersPage() {
                 </button>
               )}
               {o.status === "delivering" && (
-                <p className="text-sm text-blue-700 pt-2">⏳ Заказ выдаётся — подождите, не нажимайте кнопку повторно.</p>
+                <div className="space-y-2 pt-2">
+                  <p className="text-sm text-blue-700">
+                    ⏳ Заказ выдаётся порциями (файлы). Если зависло — нажмите «Продолжить выдачу».
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => onContinue(o.id)} disabled={busy === o.id}>
+                      ▶️ Продолжить выдачу
+                    </Button>
+                    <Button variant="outline" onClick={() => onRedeliver(o.id)} disabled={busy === o.id}>
+                      Выдать заново с начала
+                    </Button>
+                  </div>
+                </div>
               )}
               {(o.status === "awaiting_confirmation" || o.status === "awaiting_payment") && (
                 <div className="flex gap-2 pt-2">
