@@ -229,10 +229,54 @@ export async function sendFileToUser(
   quantity: number,
 ) {
   const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
+  const filename = downloadName || "file.bin";
+  const ext = (filename.split(".").pop() || "").toLowerCase();
+  // Telegram accepts remote URL for these types and still delivers a document (not a text link)
+  const telegramUrlTypes = new Set(["pdf", "zip", "gif"]);
 
-  // Always prefer real Telegram document upload
+  const { data: signed, error: signErr } = await supabaseAdmin.storage
+    .from("product-files")
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+
+  let fileSize = 0;
+  if (!signErr && signed?.signedUrl) {
+    try {
+      const headRes = await fetch(signed.signedUrl, { method: "HEAD" });
+      fileSize = Number(headRes.headers.get("content-length")) || 0;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const TG_MAX = 49 * 1024 * 1024; // Bot API ~50 MB
+  const MULTIPART_COMFORT = 15 * 1024 * 1024;
+
+  async function sendViaTelegramUrl() {
+    if (!signed?.signedUrl || !telegramUrlTypes.has(ext)) return false;
+    for (let i = 0; i < (quantity || 1); i++) {
+      const res = await tg("sendDocument", {
+        chat_id,
+        document: signed.signedUrl,
+        caption,
+      });
+      if (!res?.ok) {
+        console.error("[orders] sendDocument URL failed", res);
+        return false;
+      }
+      if (i + 1 < (quantity || 1)) await sleep(300);
+    }
+    return true;
+  }
+
+  // Large PDF/ZIP: Telegram downloads the file itself — buyer still gets a document attachment
+  if (fileSize > MULTIPART_COMFORT && fileSize <= TG_MAX && telegramUrlTypes.has(ext)) {
+    if (await sendViaTelegramUrl()) return;
+  }
+
   const { data: dl, error: dlErr } = await supabaseAdmin.storage.from("product-files").download(path);
   if (dlErr || !dl) {
+    // Download failed — last try via URL for pdf/zip
+    if (await sendViaTelegramUrl()) return;
     await tg("sendMessage", {
       chat_id,
       text: `⚠️ Не удалось получить файл «${caption}». Продавец вышлет вручную.`,
@@ -241,24 +285,43 @@ export async function sendFileToUser(
   }
 
   const bytes = new Uint8Array(await dl.arrayBuffer());
-  const filename = downloadName || "file.bin";
   const mime = dl.type || "application/octet-stream";
 
-  // Telegram Bot API limit ~50MB for bots via multipart; we use 20MB safe cap for reliability
-  if (bytes.byteLength === 0 || bytes.byteLength >= 20 * 1024 * 1024) {
+  if (bytes.byteLength === 0) {
     await tg("sendMessage", {
       chat_id,
-      text: `⚠️ Файл «${caption}» слишком большой для автоматической отправки (${Math.round(bytes.byteLength / (1024 * 1024))} МБ). Продавец вышлет вручную.`,
+      text: `⚠️ Файл «${caption}» пустой. Продавец вышлет вручную.`,
     });
     return;
   }
 
+  // Over Bot API limit — try URL delivery for pdf/zip before giving up
+  if (bytes.byteLength > TG_MAX) {
+    if (await sendViaTelegramUrl()) return;
+    await tg("sendMessage", {
+      chat_id,
+      text: `⚠️ Файл «${caption}» больше 50 МБ (${Math.round(bytes.byteLength / (1024 * 1024))} МБ) — лимит Telegram. Продавец вышлет вручную.`,
+    });
+    return;
+  }
+
+  // Prefer multipart for everything under 50 MB (incl. 26–45 MB)
   for (let i = 0; i < (quantity || 1); i++) {
-    await tgSendMultipart(
+    const res = await tgSendMultipart(
       "sendDocument",
       { chat_id, caption },
       { field: "document", filename, bytes, contentType: mime },
     );
+    if (!res?.ok) {
+      console.error("[orders] sendDocument multipart failed", res);
+      // Fallback: Telegram fetches pdf/zip by URL
+      if (await sendViaTelegramUrl()) return;
+      await tg("sendMessage", {
+        chat_id,
+        text: `⚠️ Не удалось отправить файл «${caption}». Продавец вышлет вручную.`,
+      });
+      return;
+    }
     if (i + 1 < (quantity || 1)) await sleep(300);
   }
 }
