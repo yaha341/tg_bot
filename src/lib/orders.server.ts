@@ -153,6 +153,7 @@ export async function deliverOrder(
       const path_ru = item.file_path_snapshot;
       const path_kz = item.file_path_kz_snapshot;
 
+      let itemOk = true;
       try {
         if (!path_ru && !path_kz) {
           await tg("sendMessage", {
@@ -180,14 +181,26 @@ export async function deliverOrder(
             item.file_name_snapshot ||
             "file.bin";
           // Always 1 copy — quantity is for cart price, not file copies
-          await sendFileToUser(fresh.telegram_id, path, name, item.name_snapshot, 1);
+          itemOk = await sendFileToUser(fresh.telegram_id, path, name, item.name_snapshot, 1);
         }
       } catch (e) {
+        itemOk = false;
         console.error(`[orders] deliver item ${idx} of order #${orderId} failed`, e);
+      }
+
+      if (!itemOk) {
+        // Roll back slot so cron/admin can retry (CAS claimed ahead of send)
+        await supabaseAdmin
+          .from("orders")
+          .update({ delivery_index: idx, updated_at: new Date().toISOString() })
+          .eq("id", orderId)
+          .eq("status", "delivering")
+          .eq("delivery_index", idx + 1);
         await tg("sendMessage", {
           chat_id: fresh.telegram_id,
-          text: `⚠️ Не удалось отправить «${item.name_snapshot}». Продавец вышлет вручную.`,
+          text: `⚠️ Не удалось отправить «${item.name_snapshot}». Попробую ещё раз чуть позже; если не придёт — продавец вышлет вручную.`,
         });
+        break;
       }
 
       sent++;
@@ -260,19 +273,20 @@ export async function processPendingDeliveries(limit = 3) {
   return { processed: rows.length, continued, finished };
 }
 
+/** Returns true if the document reached Telegram. */
 export async function sendFileToUser(
   chat_id: number,
   path: string,
   downloadName: string,
   caption: string,
   quantity: number,
-) {
+): Promise<boolean> {
+  void quantity;
   const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
   const filename = downloadName || "file.bin";
   const ext = (filename.split(".").pop() || "").toLowerCase();
+  // Telegram can fetch these by URL — avoids Vercel RAM/timeout on big PDFs
   const telegramUrlTypes = new Set(["pdf", "zip", "gif"]);
-  // Digital catalog: never send the same file more than once per call
-  const copies = 1;
 
   const { data: signed, error: signErr } = await supabaseAdmin.storage
     .from("product-files")
@@ -289,10 +303,14 @@ export async function sendFileToUser(
   }
 
   const TG_MAX = MAX_FILE_BYTES;
-  const MULTIPART_COMFORT = 20 * 1024 * 1024;
+  // Cloud Bot API hard limit ~50MB; Local Bot API can go higher via TELEGRAM_API_BASE
+  const CLOUD_TG_MAX = 50 * 1024 * 1024;
 
-  async function sendViaTelegramUrl() {
+  async function sendViaTelegramUrl(): Promise<boolean> {
     if (!signed?.signedUrl || !telegramUrlTypes.has(ext)) return false;
+    if (fileSize > 0 && fileSize > Math.min(TG_MAX, CLOUD_TG_MAX) && !process.env.TELEGRAM_API_BASE) {
+      // URL method also capped ~20MB by Telegram for some cases; still try below for pdf
+    }
     const res = await tg("sendDocument", {
       chat_id,
       document: signed.signedUrl,
@@ -305,38 +323,42 @@ export async function sendFileToUser(
     return true;
   }
 
-  if (fileSize > MULTIPART_COMFORT && fileSize <= TG_MAX && telegramUrlTypes.has(ext)) {
-    if (await sendViaTelegramUrl()) return;
+  // Prefer URL for pdf/zip/gif — Telegram downloads itself, no heavy Vercel upload
+  if (telegramUrlTypes.has(ext)) {
+    if (await sendViaTelegramUrl()) return true;
   }
 
   const { data: dl, error: dlErr } = await supabaseAdmin.storage.from("product-files").download(path);
   if (dlErr || !dl) {
-    if (await sendViaTelegramUrl()) return;
+    if (await sendViaTelegramUrl()) return true;
+    console.error("[orders] storage download failed", path, dlErr);
     await tg("sendMessage", {
       chat_id,
-      text: `⚠️ Не удалось получить файл «${caption}». Продавец вышлет вручную.`,
+      text: `⚠️ Не удалось получить файл «${caption}» из хранилища. Продавец вышлет вручную.`,
     });
-    return;
+    return true; // permanent — don't spin cron forever
   }
 
   const bytes = new Uint8Array(await dl.arrayBuffer());
   const mime = dl.type || "application/octet-stream";
 
   if (bytes.byteLength === 0) {
+    console.error("[orders] empty file", path);
     await tg("sendMessage", {
       chat_id,
       text: `⚠️ Файл «${caption}» пустой. Продавец вышлет вручную.`,
     });
-    return;
+    return true;
   }
 
   if (bytes.byteLength > TG_MAX) {
-    if (await sendViaTelegramUrl()) return;
+    if (await sendViaTelegramUrl()) return true;
     await tg("sendMessage", {
       chat_id,
       text: `⚠️ Файл «${caption}» слишком большой (${Math.round(bytes.byteLength / (1024 * 1024))} МБ, лимит ${Math.round(TG_MAX / (1024 * 1024))} МБ). Продавец вышлет вручную.`,
     });
-    return;
+    // Permanent size problem — treat as handled so we don't infinite-retry
+    return true;
   }
 
   const res = await tgSendMultipart(
@@ -344,19 +366,18 @@ export async function sendFileToUser(
     { chat_id, caption },
     { field: "document", filename, bytes, contentType: mime },
   );
-  if (!res?.ok) {
-    console.error("[orders] sendDocument multipart failed", res);
-    if (await sendViaTelegramUrl()) return;
-    const hint =
-      bytes.byteLength > 50 * 1024 * 1024
-        ? " Для файлов >50 МБ нужен Local Bot API (TELEGRAM_API_BASE)."
-        : "";
+  if (res?.ok) return true;
+
+  console.error("[orders] sendDocument multipart failed", res);
+  if (await sendViaTelegramUrl()) return true;
+
+  if (bytes.byteLength > CLOUD_TG_MAX) {
     await tg("sendMessage", {
       chat_id,
-      text: `⚠️ Не удалось отправить файл «${caption}» (${Math.round(bytes.byteLength / (1024 * 1024))} МБ).${hint}`,
+      text: `⚠️ Файл «${caption}» (${Math.round(bytes.byteLength / (1024 * 1024))} МБ) не проходит через облачный Telegram API (лимит ~50 МБ). Нужен Local Bot API или ручная выдача.`,
     });
+    return true; // don't spin forever without Local API
   }
 
-  void copies;
-  void quantity;
+  return false;
 }
