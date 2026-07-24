@@ -41,6 +41,18 @@ function escapeHtml(s: string) {
     .replace(/"/g, "&quot;");
 }
 
+/** Bust browser / Telegram / Office Online caches when file path changes. */
+function versionToken(filePath: string): string {
+  // path already includes timestamp; keep URL-safe short token (no encode — URLSearchParams handles it)
+  return filePath.replace(/[^\w.-]+/g, "").slice(-48) || "1";
+}
+
+const NO_CACHE = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+  Pragma: "no-cache",
+  Expires: "0",
+} as const;
+
 function wrapPage(title: string, bodyHtml: string, downloadUrl?: string) {
   const downloadLink = downloadUrl
     ? `<p style="margin-bottom:1.5rem"><a href="${escapeHtml(downloadUrl)}">⬇ Скачать оригинал файла</a></p>`
@@ -50,6 +62,7 @@ function wrapPage(title: string, bodyHtml: string, downloadUrl?: string) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
   <title>${escapeHtml(title)}</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1.25rem 3rem; line-height: 1.55; color: #1a1a1a; }
@@ -74,6 +87,7 @@ function officeViewerFallback(title: string, fileUrl: string, fileName: string) 
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-store" />
   <title>${escapeHtml(title)}</title>
   <style>
     html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
@@ -116,6 +130,7 @@ export const Route = createFileRoute("/legal/$slug")({
 
         const reqUrl = new URL(request.url);
         const wantRaw = reqUrl.searchParams.get("raw") === "1";
+        const clientV = reqUrl.searchParams.get("v") || "";
 
         const meta = SLUGS[slug];
         const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
@@ -128,29 +143,43 @@ export const Route = createFileRoute("/legal/$slug")({
         if (filePath) {
           const fileName = get(meta.nameKey) || filePath;
           const ext = extOf(fileName) || extOf(filePath);
+          const v = versionToken(filePath);
+
+          // Force a unique URL per uploaded file so Telegram / Office / CDN don't keep the old PDF
+          if (clientV !== v) {
+            const next = new URL(reqUrl);
+            next.searchParams.set("v", v);
+            return new Response(null, {
+              status: 302,
+              headers: {
+                Location: `${next.pathname}${next.search}`,
+                ...NO_CACHE,
+              },
+            });
+          }
 
           const origin =
             process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ||
             `${reqUrl.protocol}//${reqUrl.host}`;
-          const rawUrl = `${origin}/legal/${slug}?raw=1`;
+          const rawUrl = `${origin}/legal/${slug}?raw=1&v=${v}`;
 
           // DOCX → HTML page (opens as website, including in Telegram)
           if (ext === "docx" && !wantRaw) {
             const { data, error } = await supabaseAdmin.storage.from("legal-docs").download(filePath);
             if (error || !data) {
-              return new Response("Файл документа не найден", { status: 404 });
+              return new Response("Файл документа не найден", { status: 404, headers: { ...NO_CACHE } });
             }
             try {
               const mammoth = await import("mammoth");
               const arrayBuffer = await data.arrayBuffer();
               const result = await mammoth.convertToHtml({ arrayBuffer });
               return new Response(wrapPage(meta.title, result.value || "<p>(пустой документ)</p>", rawUrl), {
-                headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+                headers: { "Content-Type": "text/html; charset=utf-8", ...NO_CACHE },
               });
             } catch (e) {
               console.error("[legal] mammoth convert failed", e);
               return new Response(officeViewerFallback(meta.title, rawUrl, fileName), {
-                headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+                headers: { "Content-Type": "text/html; charset=utf-8", ...NO_CACHE },
               });
             }
           }
@@ -158,14 +187,14 @@ export const Route = createFileRoute("/legal/$slug")({
           // Old .doc — Office Online viewer page
           if (ext === "doc" && !wantRaw) {
             return new Response(officeViewerFallback(meta.title, rawUrl, fileName), {
-              headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+              headers: { "Content-Type": "text/html; charset=utf-8", ...NO_CACHE },
             });
           }
 
           // PDF (or ?raw=1 for any) — stream file
           const { data, error } = await supabaseAdmin.storage.from("legal-docs").download(filePath);
           if (error || !data) {
-            return new Response("Файл документа не найден", { status: 404 });
+            return new Response("Файл документа не найден", { status: 404, headers: { ...NO_CACHE } });
           }
           const buf = await data.arrayBuffer();
           const asciiName = fileName.replace(/[^\x20-\x7E]/g, "_") || "document.pdf";
@@ -175,8 +204,8 @@ export const Route = createFileRoute("/legal/$slug")({
             headers: {
               "Content-Type": ctype,
               "Content-Disposition": `inline; filename="${asciiName}"`,
-              "Cache-Control": "public, max-age=300",
               "Access-Control-Allow-Origin": "*",
+              ...NO_CACHE,
             },
           });
         }
@@ -188,16 +217,15 @@ export const Route = createFileRoute("/legal/$slug")({
         } else if (slug === "requisites") {
           bodyHtml = `<pre>${escapeHtml(raw)}</pre>`;
         } else if (raw.includes("<")) {
-          // Full HTML document body — render as-is without extra title wrapper
           return new Response(wrapPage(meta.title, raw), {
-            headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+            headers: { "Content-Type": "text/html; charset=utf-8", ...NO_CACHE },
           });
         } else {
           bodyHtml = `<pre>${escapeHtml(raw)}</pre>`;
         }
 
         return new Response(wrapPage(meta.title, bodyHtml), {
-          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=60" },
+          headers: { "Content-Type": "text/html; charset=utf-8", ...NO_CACHE },
         });
       },
     },

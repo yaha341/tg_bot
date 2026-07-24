@@ -50,6 +50,43 @@ export const getLegalDocUploadUrl = createServerFn({ method: "POST" })
     return { path: key, signedUrl: signed.signedUrl, filename: data.filename };
   });
 
+/** After PUT to signed URL: swap DB path, clear HTML fallback, delete previous file. */
+export const commitLegalDocFn = createServerFn({ method: "POST" })
+  .validator((d: unknown) =>
+    z
+      .object({
+        kind: z.enum(["offer", "privacy"]),
+        path: z.string().min(1),
+        filename: z.string().min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const s = await db();
+    const pathKey = data.kind === "offer" ? "legal_offer_file" : "legal_privacy_file";
+    const nameKey = data.kind === "offer" ? "legal_offer_filename" : "legal_privacy_filename";
+    const htmlKey = data.kind === "offer" ? "legal_offer_html" : "legal_privacy_html";
+
+    const { data: row } = await s.from("app_settings").select("value").eq("key", pathKey).maybeSingle();
+    const oldPath = (row?.value as string | undefined)?.trim() || "";
+
+    const now = new Date().toISOString();
+    const { error } = await s.from("app_settings").upsert([
+      { key: pathKey, value: data.path, updated_at: now },
+      { key: nameKey, value: data.filename, updated_at: now },
+      // Старый HTML-фолбэк иначе снова показывается после «Удалить»
+      { key: htmlKey, value: "", updated_at: now },
+    ]);
+    if (error) throw new Error(error.message);
+
+    if (oldPath && oldPath !== data.path) {
+      const rem = await s.storage.from("legal-docs").remove([oldPath]);
+      if (rem.error) console.warn("[settings] remove old legal doc", rem.error.message);
+    }
+    return { ok: true as const, path: data.path };
+  });
+
 export const clearLegalDocFn = createServerFn({ method: "POST" })
   .validator((d: unknown) => z.object({ kind: z.enum(["offer", "privacy"]) }).parse(d))
   .handler(async ({ data }) => {
@@ -57,14 +94,17 @@ export const clearLegalDocFn = createServerFn({ method: "POST" })
     const s = await db();
     const pathKey = data.kind === "offer" ? "legal_offer_file" : "legal_privacy_file";
     const nameKey = data.kind === "offer" ? "legal_offer_filename" : "legal_privacy_filename";
+    const htmlKey = data.kind === "offer" ? "legal_offer_html" : "legal_privacy_html";
     const { data: row } = await s.from("app_settings").select("value").eq("key", pathKey).maybeSingle();
-    const path = row?.value?.trim();
+    const path = (row?.value as string | undefined)?.trim();
     if (path) {
       await s.storage.from("legal-docs").remove([path]);
     }
+    const now = new Date().toISOString();
     await s.from("app_settings").upsert([
-      { key: pathKey, value: "", updated_at: new Date().toISOString() },
-      { key: nameKey, value: "", updated_at: new Date().toISOString() },
+      { key: pathKey, value: "", updated_at: now },
+      { key: nameKey, value: "", updated_at: now },
+      { key: htmlKey, value: "", updated_at: now },
     ]);
     return { ok: true as const };
   });

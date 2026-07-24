@@ -6,7 +6,7 @@ import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
 import { Checkbox } from "@/components-ui/checkbox";
 import { Textarea } from "@/components-ui/textarea";
-import { getSettings, saveSetting, getLegalDocUploadUrl, clearLegalDocFn } from "@/lib/settings.functions";
+import { getSettings, saveSetting, getLegalDocUploadUrl, commitLegalDocFn, clearLegalDocFn } from "@/lib/settings.functions";
 import { resetAllData } from "@/lib/reset.functions";
 
 const ROLES = [
@@ -105,10 +105,7 @@ function SettingsPage() {
         headers: { "Content-Type": file.type || "application/pdf" },
       });
       if (!res.ok) throw new Error(`Не удалось загрузить ${file.name}`);
-      const pathKey = kind === "offer" ? "legal_offer_file" : "legal_privacy_file";
-      const nameKey = kind === "offer" ? "legal_offer_filename" : "legal_privacy_filename";
-      await saveSetting({ data: { key: pathKey, value: path } });
-      await saveSetting({ data: { key: nameKey, value: filename } });
+      await commitLegalDocFn({ data: { kind, path, filename } });
       if (kind === "offer") {
         setOfferFile(path);
         setOfferFileName(filename);
@@ -255,7 +252,12 @@ function SettingsPage() {
           {uploadingKind === "offer" && <p className="text-sm text-muted-foreground">Загрузка…</p>}
           {offerFile && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <a className="text-primary underline" href={`${origin}/legal/offer`} target="_blank" rel="noreferrer">
+              <a
+                className="text-primary underline"
+                href={`${origin}/legal/offer?v=${encodeURIComponent(offerFile.replace(/[^\w.-]+/g, "").slice(-48) || "1")}`}
+                target="_blank"
+                rel="noreferrer"
+              >
                 {offerFileName || offerFile}
               </a>
               <Button type="button" size="sm" variant="ghost" onClick={() => onClearLegal("offer")}>
@@ -278,7 +280,12 @@ function SettingsPage() {
           {uploadingKind === "privacy" && <p className="text-sm text-muted-foreground">Загрузка…</p>}
           {privacyFile && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <a className="text-primary underline" href={`${origin}/legal/privacy`} target="_blank" rel="noreferrer">
+              <a
+                className="text-primary underline"
+                href={`${origin}/legal/privacy?v=${encodeURIComponent(privacyFile.replace(/[^\w.-]+/g, "").slice(-48) || "1")}`}
+                target="_blank"
+                rel="noreferrer"
+              >
                 {privacyFileName || privacyFile}
               </a>
               <Button type="button" size="sm" variant="ghost" onClick={() => onClearLegal("privacy")}>
