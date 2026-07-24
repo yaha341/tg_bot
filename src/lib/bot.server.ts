@@ -140,7 +140,8 @@ function mainMenu() {
     keyboard: [
       [{ text: "📚 Каталог" }, { text: "🔍 Поиск" }],
       [{ text: "🛒 Корзина" }, { text: "📋 Мои заказы" }],
-      [{ text: "ℹ️ Информация" }, { text: "💬 Связаться с автором" }],
+      [{ text: "📖 Инструкция" }, { text: "ℹ️ Информация" }],
+      [{ text: "💬 Связаться с автором" }],
     ],
     resize_keyboard: true,
   };
@@ -165,9 +166,123 @@ function legalInlineKeyboard(base: string) {
   };
 }
 
+async function sendInstruction(chat_id: number) {
+  const s = await db();
+  const { data: rows } = await s
+    .from("app_settings")
+    .select("key, value")
+    .in("key", ["instruction_video_path", "instruction_video_file_id", "instruction_caption"]);
+  const get = (key: string) =>
+    (rows?.find((r) => r.key === key)?.value as string | undefined)?.trim() || "";
+
+  const caption =
+    get("instruction_caption") ||
+    "📖 Как пользоваться ботом: каталог → корзина → оплата → чек. Файлы придут после подтверждения.";
+  const fileId = get("instruction_video_file_id");
+  const path = get("instruction_video_path");
+
+  async function cacheFileId(newId: string) {
+    if (!newId || newId === fileId) return;
+    await s.from("app_settings").upsert({
+      key: "instruction_video_file_id",
+      value: newId,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  function extractVideoFileId(result: unknown): string | null {
+    const r = result as { video?: { file_id?: string }; document?: { file_id?: string } } | undefined;
+    return r?.video?.file_id || r?.document?.file_id || null;
+  }
+
+  if (fileId) {
+    const res = await tg("sendVideo", { chat_id, video: fileId, caption });
+    if (res?.ok) return;
+    // stale file_id — fall through to re-upload
+  }
+
+  if (!path) {
+    await tg("sendMessage", {
+      chat_id,
+      text:
+        "📖 Инструкция скоро появится.\nПока: «Каталог» или «Поиск» → корзина → оплата → пришлите чек. Файлы придут после подтверждения продавцом.",
+      reply_markup: mainMenu(),
+    });
+    return;
+  }
+
+  const { data: pub } = s.storage.from("instruction-videos").getPublicUrl(path);
+  const publicUrl = pub?.publicUrl;
+  if (publicUrl) {
+    const res = await tg("sendVideo", { chat_id, video: publicUrl, caption });
+    if (res?.ok) {
+      const id = extractVideoFileId(res.result);
+      if (id) await cacheFileId(id);
+      return;
+    }
+  }
+
+  const { data: blob, error } = await s.storage.from("instruction-videos").download(path);
+  if (error || !blob) {
+    await tg("sendMessage", {
+      chat_id,
+      text: "⚠️ Не удалось загрузить видео инструкции. Напишите продавцу.",
+      reply_markup: mainMenu(),
+    });
+    return;
+  }
+
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const filename = path.split("/").pop() || "instruction.mp4";
+  const { tgSendMultipart } = await import("./telegram.server");
+  const res = await tgSendMultipart(
+    "sendVideo",
+    { chat_id, caption },
+    {
+      field: "video",
+      filename,
+      bytes,
+      contentType: blob.type || "video/mp4",
+    },
+  );
+  if (res?.ok) {
+    const id = extractVideoFileId(res.result);
+    if (id) await cacheFileId(id);
+    return;
+  }
+
+  // Fallback as document
+  const doc = await tgSendMultipart(
+    "sendDocument",
+    { chat_id, caption },
+    {
+      field: "document",
+      filename,
+      bytes,
+      contentType: blob.type || "video/mp4",
+    },
+  );
+  if (doc?.ok) {
+    const id = extractVideoFileId(doc.result);
+    if (id) await cacheFileId(id);
+    return;
+  }
+
+  await tg("sendMessage", {
+    chat_id,
+    text: caption,
+    reply_markup: mainMenu(),
+  });
+}
+
 async function showCategories(chat_id: number, parentId: string | null, userCountryCode?: string, offset = 0) {
   const s = await db();
-  const q = s.from("categories").select("id, name").order("sort_order").order("name");
+  const q = s
+    .from("categories")
+    .select("id, name")
+    .eq("is_visible", true)
+    .order("sort_order")
+    .order("name");
   const { data: cats } = parentId ? await q.eq("parent_id", parentId) : await q.is("parent_id", null);
   const productsQuery = s
     .from("products")
@@ -1255,6 +1370,8 @@ export async function handleUpdate(update: any) {
         return showCart(chat_id, user);
       case "📋 Мои заказы":
         return showMyOrders(chat_id, from.id);
+      case "📖 Инструкция":
+        return sendInstruction(chat_id);
       case "ℹ️ Информация": {
         const base = originFromState();
         await tg("sendMessage", {

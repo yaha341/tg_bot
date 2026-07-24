@@ -108,3 +108,67 @@ export const clearLegalDocFn = createServerFn({ method: "POST" })
     ]);
     return { ok: true as const };
   });
+
+export const getInstructionVideoUploadUrl = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ filename: z.string().min(1) }).parse(d))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const ext = (data.filename.split(".").pop() || "mp4").toLowerCase().slice(0, 10);
+    const key = `instruction-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const s = await db();
+    try {
+      const { data: buckets } = await s.storage.listBuckets();
+      if (!buckets?.some((b) => b.name === "instruction-videos")) {
+        await s.storage.createBucket("instruction-videos", {
+          public: true,
+          fileSizeLimit: 50 * 1024 * 1024,
+        });
+      }
+    } catch (e) {
+      console.warn("[settings] ensure instruction-videos bucket", e);
+    }
+    const { data: signed, error } = await s.storage.from("instruction-videos").createSignedUploadUrl(key);
+    if (error || !signed) throw new Error(error?.message || "Upload error");
+    return { path: key, signedUrl: signed.signedUrl, filename: data.filename };
+  });
+
+export const commitInstructionVideoFn = createServerFn({ method: "POST" })
+  .validator((d: unknown) => z.object({ path: z.string().min(1) }).parse(d))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const s = await db();
+    const { data: row } = await s
+      .from("app_settings")
+      .select("value")
+      .eq("key", "instruction_video_path")
+      .maybeSingle();
+    const oldPath = (row?.value as string | undefined)?.trim() || "";
+    const now = new Date().toISOString();
+    const { error } = await s.from("app_settings").upsert([
+      { key: "instruction_video_path", value: data.path, updated_at: now },
+      { key: "instruction_video_file_id", value: "", updated_at: now },
+    ]);
+    if (error) throw new Error(error.message);
+    if (oldPath && oldPath !== data.path) {
+      await s.storage.from("instruction-videos").remove([oldPath]);
+    }
+    return { ok: true as const };
+  });
+
+export const clearInstructionVideoFn = createServerFn({ method: "POST" }).handler(async () => {
+  await requireAdmin();
+  const s = await db();
+  const { data: row } = await s
+    .from("app_settings")
+    .select("value")
+    .eq("key", "instruction_video_path")
+    .maybeSingle();
+  const path = (row?.value as string | undefined)?.trim();
+  if (path) await s.storage.from("instruction-videos").remove([path]);
+  const now = new Date().toISOString();
+  await s.from("app_settings").upsert([
+    { key: "instruction_video_path", value: "", updated_at: now },
+    { key: "instruction_video_file_id", value: "", updated_at: now },
+  ]);
+  return { ok: true as const };
+});

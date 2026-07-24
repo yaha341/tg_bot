@@ -141,7 +141,10 @@ export const deleteProduct = createServerFn({ method: "POST" })
 export const listCategoriesForProducts = createServerFn({ method: "GET" }).handler(async () => {
   await requireAdmin();
   const s = await db();
-  const { data, error } = await s.from("categories").select("id, name, parent_id").order("name");
+  const { data, error } = await s
+    .from("categories")
+    .select("id, name, parent_id, sort_order, is_visible")
+    .order("name");
   if (error) throw new Error(error.message);
   return data ?? [];
 });

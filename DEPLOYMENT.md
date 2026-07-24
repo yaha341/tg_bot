@@ -42,6 +42,8 @@ GET https://your-app.vercel.app/api/cron/broadcast?secret=YOUR_CRON_SECRET
 Если БД уже существует:
 - модуль рассылки — `PATCH-BROADCASTS.sql`
 - Robokassa + юр.документы — `PATCH-ROBOKASSA.sql`
+- скрытие категорий + видео-инструкция — `PATCH-CATEGORY-VISIBLE.sql` (обязательно перед деплоем этой версии)
+- порционная выдача заказов — `PATCH-DELIVERY-BATCH.sql`
 
 ## Robokassa (KZ)
 

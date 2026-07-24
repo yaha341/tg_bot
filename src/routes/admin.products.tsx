@@ -13,13 +13,7 @@ import {
   saveProduct,
 } from "@/lib/products.functions";
 import { listPaymentMethods } from "@/lib/payment-methods.functions";
-
-function getCategoryPath(id: string, all: any[]): string {
-  const c = all.find((x) => x.id === id);
-  if (!c) return "";
-  if (!c.parent_id) return c.name;
-  return getCategoryPath(c.parent_id, all) + " → " + c.name;
-}
+import { filterCategoriesByQuery, getCategoryPath, sortCategoriesTree } from "@/lib/category-tree";
 
 export const Route = createFileRoute("/admin/products")({
   component: ProductsPage,
@@ -116,9 +110,16 @@ function ProductsPage() {
 
   const list = (products.data ?? []) as any[];
   const [search, setSearch] = useState("");
+  const [catQuery, setCatQuery] = useState("");
   const [editing, setEditing] = useState<Product | null>(null);
   const [images, setImages] = useState<Img[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const catsTree = useMemo(() => sortCategoriesTree((cats.data ?? []) as any[]), [cats.data]);
+  const catsFiltered = useMemo(
+    () => filterCategoriesByQuery(catsTree, catQuery),
+    [catsTree, catQuery],
+  );
 
   // Клиентская фильтрация по названию / ключевым словам / описанию.
   // 300+ товаров обрабатываются мгновенно, бэкенд-поиск не требуется.
@@ -247,8 +248,13 @@ function ProductsPage() {
             </div>
             <div className="space-y-2">
               <Label>Категории (можно выбрать несколько)</Label>
-              <div className="border rounded-md p-2 max-h-40 overflow-y-auto space-y-1 bg-background text-sm">
-                {(cats.data ?? []).map((c: any) => (
+              <Input
+                value={catQuery}
+                onChange={(e) => setCatQuery(e.target.value)}
+                placeholder="Поиск категории…"
+              />
+              <div className="border rounded-md p-2 max-h-56 overflow-y-auto space-y-1 bg-background text-sm">
+                {catsFiltered.map((c: any) => (
                   <label key={c.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -264,11 +270,18 @@ function ProductsPage() {
                         }
                       }}
                     />
-                    {getCategoryPath(c.id, cats.data ?? [])}
+                    <span>
+                      {getCategoryPath(c.id, catsTree)}
+                      {c.is_visible === false ? (
+                        <span className="text-xs text-amber-700"> (скрыта в боте)</span>
+                      ) : null}
+                    </span>
                   </label>
                 ))}
-                {(!cats.data || cats.data.length === 0) && (
-                  <div className="text-muted-foreground text-xs">Нет доступных категорий</div>
+                {catsFiltered.length === 0 && (
+                  <div className="text-muted-foreground text-xs">
+                    {catsTree.length === 0 ? "Нет доступных категорий" : "Ничего не найдено"}
+                  </div>
                 )}
               </div>
             </div>
@@ -452,7 +465,7 @@ function ProductsPage() {
                 <div className="text-xs text-muted-foreground">
                   {p.category_ids && p.category_ids.length > 0
                     ? p.category_ids
-                        .map((id: string) => getCategoryPath(id, cats.data ?? []))
+                        .map((id: string) => getCategoryPath(id, catsTree))
                         .filter(Boolean)
                         .join(", ") || "без категории"
                     : p.categories?.name || "без категории"} · {p.price} {p.currency}

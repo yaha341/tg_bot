@@ -6,6 +6,7 @@ CREATE TABLE public.categories (
   name TEXT NOT NULL,
   parent_id UUID REFERENCES public.categories(id) ON DELETE CASCADE,
   sort_order INT NOT NULL DEFAULT 0,
+  is_visible BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 GRANT ALL ON public.categories TO service_role;

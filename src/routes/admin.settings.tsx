@@ -6,7 +6,7 @@ import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
 import { Checkbox } from "@/components-ui/checkbox";
 import { Textarea } from "@/components-ui/textarea";
-import { getSettings, saveSetting, getLegalDocUploadUrl, commitLegalDocFn, clearLegalDocFn } from "@/lib/settings.functions";
+import { getSettings, saveSetting, getLegalDocUploadUrl, commitLegalDocFn, clearLegalDocFn, getInstructionVideoUploadUrl, commitInstructionVideoFn, clearInstructionVideoFn } from "@/lib/settings.functions";
 import { resetAllData } from "@/lib/reset.functions";
 
 const ROLES = [
@@ -42,6 +42,10 @@ function SettingsPage() {
   const [privacyFileName, setPrivacyFileName] = useState("");
   const [legalSaved, setLegalSaved] = useState(false);
   const [uploadingKind, setUploadingKind] = useState<"offer" | "privacy" | null>(null);
+  const [instructionCaption, setInstructionCaption] = useState("");
+  const [instructionVideoPath, setInstructionVideoPath] = useState("");
+  const [instructionUploading, setInstructionUploading] = useState(false);
+  const [instructionSaved, setInstructionSaved] = useState(false);
 
   useEffect(() => {
     setAdminChatId(settings.data?.admin_chat_id ?? "");
@@ -59,6 +63,8 @@ function SettingsPage() {
     setOfferFileName(settings.data?.legal_offer_filename ?? "");
     setPrivacyFile(settings.data?.legal_privacy_file ?? "");
     setPrivacyFileName(settings.data?.legal_privacy_filename ?? "");
+    setInstructionCaption(settings.data?.instruction_caption ?? "");
+    setInstructionVideoPath(settings.data?.instruction_video_path ?? "");
   }, [settings.data]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://your-app.vercel.app";
@@ -132,6 +138,49 @@ function SettingsPage() {
         setPrivacyFile("");
         setPrivacyFileName("");
       }
+      await qc.invalidateQueries({ queryKey: ["settings"] });
+    } catch (e: any) {
+      alert(e.message);
+    }
+  }
+
+  async function onSaveInstruction() {
+    await saveSetting({ data: { key: "instruction_caption", value: instructionCaption } });
+    qc.invalidateQueries({ queryKey: ["settings"] });
+    setInstructionSaved(true);
+    setTimeout(() => setInstructionSaved(false), 2000);
+  }
+
+  async function onUploadInstruction(file: File | null) {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      alert("Файл больше 50 МБ — Telegram на Vercel обычно не примет. Сожмите видео.");
+      return;
+    }
+    setInstructionUploading(true);
+    try {
+      const { path, signedUrl } = await getInstructionVideoUploadUrl({ data: { filename: file.name } });
+      const res = await fetch(signedUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "video/mp4" },
+      });
+      if (!res.ok) throw new Error(`Не удалось загрузить ${file.name}`);
+      await commitInstructionVideoFn({ data: { path } });
+      setInstructionVideoPath(path);
+      await qc.invalidateQueries({ queryKey: ["settings"] });
+    } catch (e: any) {
+      alert(e.message || "Ошибка загрузки");
+    } finally {
+      setInstructionUploading(false);
+    }
+  }
+
+  async function onClearInstruction() {
+    if (!confirm("Удалить видео инструкции?")) return;
+    try {
+      await clearInstructionVideoFn();
+      setInstructionVideoPath("");
       await qc.invalidateQueries({ queryKey: ["settings"] });
     } catch (e: any) {
       alert(e.message);
@@ -301,6 +350,44 @@ function SettingsPage() {
         <div className="flex items-center gap-2">
           <Button onClick={onSaveLegal}>Сохранить документы</Button>
           {legalSaved && <span className="text-sm text-green-600">Сохранено ✓</span>}
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-lg p-4 space-y-4">
+        <h2 className="text-lg font-semibold">Инструкция для покупателей</h2>
+        <p className="text-sm text-muted-foreground">
+          Кнопка «📖 Инструкция» в главном меню бота. Видео лучше до <b>50 МБ</b> (лимит Telegram), формат MP4.
+        </p>
+        <div className="space-y-2">
+          <Label>Видео</Label>
+          <Input
+            type="file"
+            accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
+            disabled={instructionUploading}
+            onChange={(e) => onUploadInstruction(e.target.files?.[0] ?? null)}
+          />
+          {instructionUploading && <p className="text-sm text-muted-foreground">Загрузка…</p>}
+          {instructionVideoPath && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground truncate max-w-md">{instructionVideoPath}</span>
+              <Button type="button" size="sm" variant="ghost" onClick={onClearInstruction}>
+                Удалить видео
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label>Текст под видео (как пользоваться / как оплата)</Label>
+          <Textarea
+            rows={8}
+            value={instructionCaption}
+            onChange={(e) => setInstructionCaption(e.target.value)}
+            placeholder="Кратко: каталог → корзина → оплата → чек…"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={onSaveInstruction}>Сохранить текст инструкции</Button>
+          {instructionSaved && <span className="text-sm text-green-600">Сохранено ✓</span>}
         </div>
       </div>
 
