@@ -478,6 +478,7 @@ export async function listZernioPosts(accountId: string): Promise<any[]> {
         ...post,
         _zernioPostId: post.latePostId || post.postId || post._id || post.id || null,
         platformPostId: platformData?.platformPostId || post.platformPostId || null,
+        _isExternal: post.isExternal === true,
       };
     });
     // Analytics is authoritative and already contains the platform media ID, so
@@ -486,13 +487,14 @@ export async function listZernioPosts(accountId: string): Promise<any[]> {
     // (matched by the platform's own platformPostId, not a Zernio-internal id)
     // is appended rather than dropped — that's exactly the post that was just
     // published and is why the refresh was clicked.
+    const freshExternalPosts = externalRes.posts || [];
     const analyticsPlatformIds = new Set(analyticsPosts.map((p: any) => p.platformPostId).filter(Boolean));
-    const newlySyncedExternalPosts = (externalRes.posts || []).filter(
+    const newlySyncedExternalPosts = freshExternalPosts.filter(
       (p: any) => p.platformPostId && !analyticsPlatformIds.has(p.platformPostId),
     );
     const regularPosts = analyticsPosts.length > 0
       ? [...analyticsPosts, ...newlySyncedExternalPosts]
-      : [...(externalRes.posts || []), ...(zernioRes.posts || [])];
+      : [...freshExternalPosts, ...(zernioRes.posts || [])];
     const allPosts = [...regularPosts, ...(storiesRes.stories || []).map((story) => ({ ...story, platformPostId: story.platformPostId || story.id || story._id, thumbnailUrl: story.thumbnailUrl || story.mediaUrl, publishedAt: story.timestamp, type: "story" }))];
     
     const uniquePosts: any[] = [];
@@ -551,7 +553,30 @@ export async function listZernioPosts(accountId: string): Promise<any[]> {
       }
     }
     
-    return uniquePosts.sort((a, b) => {
+    // sync-external's response is a live read of what's currently published on
+    // the platform. Analytics keeps posts forever with no "still exists on the
+    // platform" flag, so a post deleted directly on Instagram (not through
+    // Zernio) would otherwise linger in this list indefinitely. Catch that by
+    // dropping analytics-only external posts that fall inside the exact date
+    // range sync-external just confirmed but aren't in its results — bounded
+    // to that confirmed range (never guessed) and skipped entirely if the
+    // sync call came back empty, so posts outside it are never touched.
+    const syncedPlatformIds = new Set(freshExternalPosts.map((p: any) => p.platformPostId).filter(Boolean));
+    const syncedDates = freshExternalPosts
+      .map((p: any) => (p.publishedAt ? new Date(p.publishedAt).getTime() : NaN))
+      .filter((t: number) => !Number.isNaN(t));
+    const syncedMinDate = syncedDates.length > 0 ? Math.min(...syncedDates) : null;
+
+    const livePosts = syncedMinDate === null
+      ? uniquePosts
+      : uniquePosts.filter((p) => {
+          if (!p._isExternal || !p._date) return true;
+          const postDate = new Date(p._date).getTime();
+          if (Number.isNaN(postDate) || postDate < syncedMinDate) return true;
+          return syncedPlatformIds.has(p.platformPostId);
+        });
+
+    return livePosts.sort((a, b) => {
       const d1 = new Date(a._date || 0).getTime();
       const d2 = new Date(b._date || 0).getTime();
       return d2 - d1;
