@@ -14,6 +14,8 @@ const MAX_FILE_BYTES =
 
 const DELIVERABLE_STATUSES = ["awaiting_confirmation", "awaiting_payment"] as const;
 
+export type MaterialFile = { path?: string | null; name?: string | null; url?: string | null };
+
 type OrderItem = {
   id?: string;
   name_snapshot: string;
@@ -21,8 +23,52 @@ type OrderItem = {
   file_name_snapshot: string | null;
   file_path_kz_snapshot?: string | null;
   file_name_kz_snapshot?: string | null;
+  file_url_snapshot?: string | null;
+  file_url_kz_snapshot?: string | null;
+  material_files_snapshot?: MaterialFile[] | null;
+  material_files_kz_snapshot?: MaterialFile[] | null;
   quantity: number;
 };
+
+function legacyAsMaterials(path?: string | null, name?: string | null, url?: string | null): MaterialFile[] {
+  if (url) return [{ url }];
+  if (path) return [{ path, name }];
+  return [];
+}
+
+export async function sendMaterialsToUser(
+  chat_id: number,
+  materials: MaterialFile[],
+  caption: string,
+  quantity: number,
+): Promise<boolean> {
+  for (let index = 0; index < materials.length; index++) {
+    const material = materials[index];
+    const itemCaption = index === 0 ? caption : "";
+    if (material.url) {
+      for (let copy = 0; copy < (quantity || 1); copy++) {
+        const result = await tg("sendMessage", {
+          chat_id,
+          text: itemCaption
+            ? `📁 <b>${itemCaption}</b>\n\n📥 <a href="${material.url}">Нажмите здесь, чтобы скачать файл</a>`
+            : `📥 <a href="${material.url}">Нажмите здесь, чтобы скачать файл</a>`,
+          parse_mode: "HTML",
+        });
+        if (!result?.ok) return false;
+      }
+    } else if (material.path) {
+      const ok = await sendFileToUser(
+        chat_id,
+        material.path,
+        material.name || "file.bin",
+        itemCaption,
+        quantity,
+      );
+      if (!ok) return false;
+    }
+  }
+  return true;
+}
 
 async function claimOrderForDelivery(orderId: number) {
   const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
@@ -130,8 +176,12 @@ export async function deliverOrder(
       }
 
       const item = items[idx];
-      const path_ru = item.file_path_snapshot;
-      const path_kz = item.file_path_kz_snapshot;
+      const materialsRu = item.material_files_snapshot?.length
+        ? item.material_files_snapshot
+        : legacyAsMaterials(item.file_path_snapshot, item.file_name_snapshot, item.file_url_snapshot);
+      const materialsKz = item.material_files_kz_snapshot?.length
+        ? item.material_files_kz_snapshot
+        : legacyAsMaterials(item.file_path_kz_snapshot, item.file_name_kz_snapshot, item.file_url_kz_snapshot);
 
       // 1. Продвигаем индекс вперёд с помощью CAS ДО отправки файла
       const { data: updated } = await supabaseAdmin
@@ -150,10 +200,10 @@ export async function deliverOrder(
 
       let itemOk = true;
       try {
-        if (!path_ru && !path_kz) {
+        if (materialsRu.length === 0 && materialsKz.length === 0) {
           // Нет файла — ничего не отправляем
           itemOk = true;
-        } else if (path_ru && path_kz) {
+        } else if (materialsKz.length > 0) {
           await tg("sendMessage", {
             chat_id: fresh.telegram_id,
             text: `📚 Материал «<b>${item.name_snapshot}</b>»\nВыберите язык, на котором хотите получить файл:`,
@@ -169,13 +219,8 @@ export async function deliverOrder(
           });
           itemOk = true;
         } else {
-          const path = path_ru || path_kz!;
-          const name =
-            (path_ru ? item.file_name_snapshot : item.file_name_kz_snapshot) ||
-            item.file_name_snapshot ||
-            "file.bin";
-          // Always 1 copy — quantity is for cart price, not file copies
-          itemOk = await sendFileToUser(fresh.telegram_id, path, name, item.name_snapshot, 1);
+          // Always 1 copy — quantity is for cart price, not file copies.
+          itemOk = await sendMaterialsToUser(fresh.telegram_id, materialsRu, item.name_snapshot, 1);
         }
       } catch (e) {
         itemOk = false;

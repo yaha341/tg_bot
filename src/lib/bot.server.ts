@@ -762,6 +762,23 @@ async function askCountry(chat_id: number, telegram_id: number, forCheckout = fa
   });
 }
 
+function materialsForProduct(
+  product: any,
+  lang: "ru" | "kz",
+): Array<{ file_path?: string; file_name?: string | null; url?: string }> {
+  const rows = ((product?.product_material_files as any[]) || [])
+    .filter((file) => file.language === lang)
+    .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+    .map((file) => ({ file_path: file.file_path as string, file_name: (file.file_name as string) ?? null }));
+  if (rows.length) return rows;
+  const legacyUrl = lang === "ru" ? product?.file_url : product?.file_url_kz;
+  const legacyPath = lang === "ru" ? product?.file_path : product?.file_path_kz;
+  const legacyName = lang === "ru" ? product?.file_name : product?.file_name_kz;
+  if (legacyUrl) return [{ url: legacyUrl }];
+  if (legacyPath) return [{ file_path: legacyPath, file_name: legacyName ?? null }];
+  return [];
+}
+
 async function placeOrder(chat_id: number, user: BotUser, country_code: string) {
   const telegram_id = user.telegram_id;
   const s = await db();
@@ -772,7 +789,7 @@ async function placeOrder(chat_id: number, user: BotUser, country_code: string) 
     .single();
   const { data: items } = await s
     .from("cart_items")
-    .select("id, quantity, products(id, name, price, currency, file_path, file_name, file_path_kz, file_name_kz, country_prices)")
+    .select("id, quantity, products(id, name, price, currency, file_path, file_name, file_path_kz, file_name_kz, file_url, file_url_kz, country_prices, product_material_files(language, file_path, file_name, sort_order))")
     .eq("telegram_id", telegram_id);
   if (!items?.length) {
     await tg("sendMessage", { chat_id, text: "🛒 Корзина пуста." });
@@ -830,6 +847,8 @@ async function placeOrder(chat_id: number, user: BotUser, country_code: string) 
         displayPrice = await convertAmount(it.products?.price ?? 0, it.products?.currency || "KZT", currency);
       }
       
+      const materialsRu = materialsForProduct(it.products, "ru");
+      const materialsKz = materialsForProduct(it.products, "kz");
       return {
         order_id: order.id,
         product_id: it.products?.id,
@@ -840,6 +859,18 @@ async function placeOrder(chat_id: number, user: BotUser, country_code: string) 
         file_name_snapshot: it.products?.file_name ?? null,
         file_path_kz_snapshot: it.products?.file_path_kz ?? null,
         file_name_kz_snapshot: it.products?.file_name_kz ?? null,
+        file_url_snapshot: it.products?.file_url ?? null,
+        file_url_kz_snapshot: it.products?.file_url_kz ?? null,
+        material_files_snapshot: materialsRu.map((material) => ({
+          path: material.file_path ?? null,
+          name: material.file_name ?? null,
+          url: material.url ?? null,
+        })),
+        material_files_kz_snapshot: materialsKz.map((material) => ({
+          path: material.file_path ?? null,
+          name: material.file_name ?? null,
+          url: material.url ?? null,
+        })),
       };
     }),
   );
@@ -1543,20 +1574,21 @@ export async function handleUpdate(update: any) {
           return;
         }
 
-        const { sendFileToUser } = await import("./orders.server");
-        const path = lang === "ru" ? item.file_path_snapshot : item.file_path_kz_snapshot;
-        const name = lang === "ru" ? item.file_name_snapshot : item.file_name_kz_snapshot;
+        const { sendMaterialsToUser } = await import("./orders.server");
+        const snapshot = lang === "ru" ? item.material_files_snapshot : item.material_files_kz_snapshot;
+        const legacyPath = lang === "ru" ? item.file_path_snapshot : item.file_path_kz_snapshot;
+        const legacyName = lang === "ru" ? item.file_name_snapshot : item.file_name_kz_snapshot;
+        const legacyUrl = lang === "ru" ? item.file_url_snapshot : item.file_url_kz_snapshot;
+        const materials = Array.isArray(snapshot) && snapshot.length
+          ? snapshot
+          : legacyUrl
+            ? [{ url: legacyUrl }]
+            : legacyPath
+              ? [{ path: legacyPath, name: legacyName }]
+              : [];
 
-        await tg("sendMessage", { chat_id, text: `⏳ Загружаю файл (${lang === "ru" ? "Русский" : "Қазақша"})...` });
-
-        // Always 1 copy — quantity is cart price, not file copies
-        await sendFileToUser(
-          order.telegram_id,
-          path,
-          name || "file.bin",
-          item.name_snapshot,
-          1
-        );
+        await tg("sendMessage", { chat_id, text: `⏳ Загружаю файлы (${lang === "ru" ? "Русский" : "Қазақша"})...` });
+        await sendMaterialsToUser(order.telegram_id, materials, item.name_snapshot, 1);
 
         // Update delivered_language tracking
         const newDeliveredLang = item.delivered_language ? "both" : lang;

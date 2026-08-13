@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { getCapabilitiesFn } from "@/lib/capabilities.functions";
 import { Button } from "@/components-ui/button";
 import { Input } from "@/components-ui/input";
 import { Label } from "@/components-ui/label";
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/admin/products")({
 });
 
 type Img = { id?: string; image_path: string; sort_order: number };
+type MaterialFile = { file_path: string; file_name: string | null; sort_order: number };
 type Product = {
   id?: string;
   category_id: string | null;
@@ -35,7 +37,10 @@ type Product = {
   file_name: string | null;
   file_path_kz?: string | null;
   file_name_kz?: string | null;
+  file_url?: string | null;
+  file_url_kz?: string | null;
   product_images?: Img[];
+  product_material_files?: (MaterialFile & { language: "ru" | "kz" })[];
   country_prices?: Record<string, number>;
 };
 
@@ -53,6 +58,8 @@ const empty: Product = {
   file_name: null,
   file_path_kz: null,
   file_name_kz: null,
+  file_url: null,
+  file_url_kz: null,
   product_images: [],
   country_prices: {},
 };
@@ -102,6 +109,7 @@ function ProductsPage() {
   const qc = useQueryClient();
   const products = useQuery({ queryKey: ["products"], queryFn: () => listProducts() });
   const cats = useQuery({ queryKey: ["cats-flat"], queryFn: () => listCategoriesForProducts() });
+  const capabilities = useQuery({ queryKey: ["capabilities"], queryFn: () => getCapabilitiesFn() });
   
   const pMethods = useQuery({
     queryKey: ["payment-methods-admin"],
@@ -113,7 +121,10 @@ function ProductsPage() {
   const [catQuery, setCatQuery] = useState("");
   const [editing, setEditing] = useState<Product | null>(null);
   const [images, setImages] = useState<Img[]>([]);
+  const [materialFilesRu, setMaterialFilesRu] = useState<MaterialFile[]>([]);
+  const [materialFilesKz, setMaterialFilesKz] = useState<MaterialFile[]>([]);
   const [saving, setSaving] = useState(false);
+  const materialsEnabled = capabilities.data?.multi_file_materials === true;
 
   const catsTree = useMemo(() => sortCategoriesTree((cats.data ?? []) as any[]), [cats.data]);
   const catsFiltered = useMemo(
@@ -135,6 +146,8 @@ function ProductsPage() {
   function startNew() {
     setEditing({ ...empty });
     setImages([]);
+    setMaterialFilesRu([]);
+    setMaterialFilesKz([]);
   }
   function startEdit(p: any) {
     setEditing({
@@ -152,10 +165,17 @@ function ProductsPage() {
       file_name: p.file_name,
       file_path_kz: p.file_path_kz,
       file_name_kz: p.file_name_kz,
+      file_url: p.file_url,
+      file_url_kz: p.file_url_kz,
       country_prices: p.country_prices || {},
     });
     const imgs = (p.product_images ?? []).slice().sort((a: Img, b: Img) => a.sort_order - b.sort_order);
     setImages(imgs);
+    const materialRows = (p.product_material_files ?? []) as (MaterialFile & { language: "ru" | "kz" })[];
+    const ru = materialRows.filter((f) => f.language === "ru").sort((a, b) => a.sort_order - b.sort_order);
+    const kz = materialRows.filter((f) => f.language === "kz").sort((a, b) => a.sort_order - b.sort_order);
+    setMaterialFilesRu(ru.length ? ru : p.file_path ? [{ file_path: p.file_path, file_name: p.file_name, sort_order: 0 }] : []);
+    setMaterialFilesKz(kz.length ? kz : p.file_path_kz ? [{ file_path: p.file_path_kz, file_name: p.file_name_kz, sort_order: 0 }] : []);
   }
 
   async function onImagesChange(files: FileList | null) {
@@ -192,6 +212,22 @@ function ProductsPage() {
     }
   }
 
+  async function onMaterialFilesChange(files: FileList | null, lang: "ru" | "kz") {
+    if (!files) return;
+    const current = lang === "ru" ? materialFilesRu : materialFilesKz;
+    const setList = lang === "ru" ? setMaterialFilesRu : setMaterialFilesKz;
+    try {
+      const uploaded: MaterialFile[] = [];
+      for (const file of Array.from(files)) {
+        const result = await uploadFile(file, "product-files");
+        uploaded.push({ file_path: result.path, file_name: result.name, sort_order: current.length + uploaded.length });
+      }
+      setList([...current, ...uploaded]);
+    } catch (e: any) {
+      alert(`Ошибка загрузки файла${lang === "kz" ? " (KZ)" : ""}: ${e.message}`);
+    }
+  }
+
   async function onSave() {
     if (!editing) return;
     setSaving(true);
@@ -212,6 +248,14 @@ function ProductsPage() {
           file_name: editing.file_name,
           file_path_kz: editing.file_path_kz,
           file_name_kz: editing.file_name_kz,
+          file_url: editing.file_url,
+          file_url_kz: editing.file_url_kz,
+          material_files_ru: materialsEnabled
+            ? materialFilesRu.map((f) => ({ file_path: f.file_path, file_name: f.file_name }))
+            : [],
+          material_files_kz: materialsEnabled
+            ? materialFilesKz.map((f) => ({ file_path: f.file_path, file_name: f.file_name }))
+            : [],
           image_paths: images.map((i) => i.image_path),
           country_prices: editing.country_prices,
         },
@@ -368,6 +412,65 @@ function ProductsPage() {
             </div>
           </div>
 
+          {materialsEnabled && (
+            <div className="space-y-4 pt-4 border-t">
+              <div>
+                <Label>Материалы товара: несколько файлов</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Файлы сохраняются отдельно для русского и казахского языка и выдаются в порядке списка.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="materials-ru">Дополнительные файлы (Русский)</Label>
+                  <Input
+                    id="materials-ru"
+                    type="file"
+                    multiple
+                    onChange={(e) => onMaterialFilesChange(e.target.files, "ru")}
+                  />
+                  <ul className="text-sm space-y-1">
+                    {materialFilesRu.map((file, index) => (
+                      <li key={`${file.file_path}-${index}`} className="flex items-center justify-between gap-2">
+                        <span className="truncate">📎 {file.file_name || file.file_path}</span>
+                        <button
+                          type="button"
+                          className="text-destructive hover:underline shrink-0"
+                          onClick={() => setMaterialFilesRu(materialFilesRu.filter((_, i) => i !== index))}
+                        >
+                          Убрать
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="materials-kz">Дополнительные файлы (Қазақша)</Label>
+                  <Input
+                    id="materials-kz"
+                    type="file"
+                    multiple
+                    onChange={(e) => onMaterialFilesChange(e.target.files, "kz")}
+                  />
+                  <ul className="text-sm space-y-1">
+                    {materialFilesKz.map((file, index) => (
+                      <li key={`${file.file_path}-${index}`} className="flex items-center justify-between gap-2">
+                        <span className="truncate">📎 {file.file_name || file.file_path}</span>
+                        <button
+                          type="button"
+                          className="text-destructive hover:underline shrink-0"
+                          onClick={() => setMaterialFilesKz(materialFilesKz.filter((_, i) => i !== index))}
+                        >
+                          Убрать
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
           {pMethods.data && pMethods.data.length > 0 && (
             <div className="space-y-4 pt-4 border-t">
               <h3 className="font-medium">Цены для разных стран (вручную)</h3>
@@ -475,7 +578,8 @@ function ProductsPage() {
                         .filter(Boolean)
                         .join(", ") || "без категории"
                     : p.categories?.name || "без категории"} · {p.price} {p.currency}
-                  {!p.file_path && !p.file_path_kz && <span className="text-destructive"> · нет файла</span>}
+                  {!p.file_path && !p.file_path_kz && !(p.product_material_files?.length > 0) && <span className="text-destructive"> · нет файла</span>}
+                  {p.product_material_files?.length > 0 && <span className="text-green-500"> · 📎 {p.product_material_files.length} файлов</span>}
                   {p.file_path && p.file_path_kz && <span className="text-green-500"> · 🇷🇺🇰🇿</span>}
                   {p.file_path && !p.file_path_kz && <span className="text-muted-foreground"> · 🇷🇺</span>}
                   {!p.file_path && p.file_path_kz && <span className="text-muted-foreground"> · 🇰🇿</span>}

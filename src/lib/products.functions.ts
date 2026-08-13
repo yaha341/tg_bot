@@ -12,7 +12,7 @@ export const listProducts = createServerFn({ method: "GET" }).handler(async () =
   const s = await db();
   const { data, error } = await s
     .from("products")
-    .select("*, product_images(id, image_path, sort_order), categories(name)")
+    .select("*, product_images(id, image_path, sort_order), product_material_files(id, language, file_path, file_name, sort_order), categories(name)")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -37,7 +37,7 @@ export const getProduct = createServerFn({ method: "GET" })
     const s = await db();
     const { data: prod, error } = await s
       .from("products")
-      .select("*, product_images(id, image_path, sort_order)")
+      .select("*, product_images(id, image_path, sort_order), product_material_files(id, language, file_path, file_name, sort_order)")
       .eq("id", data.id)
       .single();
     if (error) throw new Error(error.message);
@@ -59,6 +59,10 @@ const SaveInput = z.object({
   file_name: z.string().nullable().optional(),
   file_path_kz: z.string().nullable().optional(),
   file_name_kz: z.string().nullable().optional(),
+  file_url: z.string().nullable().optional(),
+  file_url_kz: z.string().nullable().optional(),
+  material_files_ru: z.array(z.object({ file_path: z.string(), file_name: z.string().nullable().optional() })).default([]),
+  material_files_kz: z.array(z.object({ file_path: z.string(), file_name: z.string().nullable().optional() })).default([]),
   image_paths: z.array(z.string()).default([]),
   country_prices: z.record(z.number()).optional().default({}),
 });
@@ -86,6 +90,8 @@ export const saveProduct = createServerFn({ method: "POST" })
           file_name: data.file_name ?? null,
           file_path_kz: data.file_path_kz ?? null,
           file_name_kz: data.file_name_kz ?? null,
+          file_url: data.file_url ?? null,
+          file_url_kz: data.file_url_kz ?? null,
           country_prices: data.country_prices,
         })
         .eq("id", productId);
@@ -107,6 +113,8 @@ export const saveProduct = createServerFn({ method: "POST" })
           file_name: data.file_name ?? null,
           file_path_kz: data.file_path_kz ?? null,
           file_name_kz: data.file_name_kz ?? null,
+          file_url: data.file_url ?? null,
+          file_url_kz: data.file_url_kz ?? null,
           country_prices: data.country_prices,
         })
         .select("id")
@@ -124,6 +132,38 @@ export const saveProduct = createServerFn({ method: "POST" })
       }));
       const { error } = await s.from("product_images").insert(rows);
       if (error) throw new Error(error.message);
+    }
+    // Only tenants with the paid capability may change the material-file list.
+    const { moduleEnabled, requireModule } = await import("./tenant-config.server");
+    const materialsEnabled = await moduleEnabled("multi_file_materials");
+    const materialBotId = materialsEnabled ? (await import("./tenant-config.server")).getConfiguredBotId() : undefined;
+    const materialRows = [
+      ...data.material_files_ru.map((f, idx) => ({
+        bot_id: materialBotId!,
+        product_id: productId!,
+        language: "ru" as const,
+        file_path: f.file_path,
+        file_name: f.file_name ?? null,
+        sort_order: idx,
+      })),
+      ...data.material_files_kz.map((f, idx) => ({
+        bot_id: materialBotId!,
+        product_id: productId!,
+        language: "kz" as const,
+        file_path: f.file_path,
+        file_name: f.file_name ?? null,
+        sort_order: idx,
+      })),
+    ];
+    if (materialRows.length > 0 && !materialsEnabled) {
+      await requireModule("multi_file_materials");
+    }
+    if (materialsEnabled) {
+      await s.from("product_material_files").delete().eq("product_id", productId);
+      if (materialRows.length) {
+        const { error } = await s.from("product_material_files").insert(materialRows);
+        if (error) throw new Error(error.message);
+      }
     }
     return { ok: true as const, id: productId };
   });
