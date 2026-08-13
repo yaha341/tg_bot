@@ -69,7 +69,8 @@ SET modules = COALESCE(modules, '{}'::jsonb) || jsonb_build_object(
 )
 WHERE id = '89d155d1-91e1-4c2d-981e-43741a0badc3'::uuid;
 
--- Didactica: current repository functionality is active; Instagram is absent.
+-- Didactica: VIP and blocked-users exist in the source project; Instagram and
+-- the Anastasia-only broadcast/Robokassa/OCR modules do not.
 UPDATE public.bots
 SET modules = COALESCE(modules, '{}'::jsonb) || jsonb_build_object(
   'shop', true,
@@ -83,7 +84,8 @@ SET modules = COALESCE(modules, '{}'::jsonb) || jsonb_build_object(
 )
 WHERE id = '19ce949b-8877-4fa7-b072-c09980eb7ee3'::uuid;
 
--- Razvivashka: current repository functionality is active.
+-- Razvivashka: VIP, Instagram/Zernio and blocked-users exist in the source
+-- project; broadcasts/Robokassa/OCR are Anastasia-only modules.
 UPDATE public.bots
 SET modules = COALESCE(modules, '{}'::jsonb) || jsonb_build_object(
   'shop', true,
