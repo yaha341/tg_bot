@@ -4,6 +4,7 @@ import {
   sendInstagramPrivateReply,
 } from "./zernio.server";
 import { convertAmount } from "./currency.server";
+import type { TablesUpdate } from "@/integrations-supabase/types";
 
 async function db() {
   const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
@@ -38,7 +39,7 @@ export async function upsertZernioUser(
     .maybeSingle();
 
   if (existing) {
-    const updates: Record<string, unknown> = {
+    const updates: TablesUpdate<"bot_users"> = {
       updated_at: new Date().toISOString(),
     };
     if (conversationId) updates.zernio_conversation_id = conversationId;
@@ -46,7 +47,11 @@ export async function upsertZernioUser(
     if (username) updates.username = username;
     if (firstName) updates.first_name = firstName;
     if (metadata) {
-      updates.metadata = { ...(existing.metadata || {}), ...metadata };
+      const existingMetadata =
+        existing.metadata && typeof existing.metadata === "object" && !Array.isArray(existing.metadata)
+          ? (existing.metadata as Record<string, unknown>)
+          : {};
+      updates.metadata = { ...existingMetadata, ...metadata } as any;
     }
 
     await s.from("bot_users").update(updates).eq("user_key", userKey);

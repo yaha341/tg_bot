@@ -1,5 +1,7 @@
 import { tg, tgSendMultipart } from "./telegram.server";
 
+import type { TablesUpdate } from "@/integrations-supabase/types";
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -114,7 +116,7 @@ export async function deliverOrder(
   const isFullRedeliver = Boolean(options?.force && !options?.resume);
 
   if (options?.force) {
-    const patch: Record<string, unknown> = { status: "delivering" };
+    const patch: TablesUpdate<"orders"> = { status: "delivering" };
     if (isFullRedeliver) patch.delivery_index = 0;
 
     const { data, error } = await supabaseAdmin

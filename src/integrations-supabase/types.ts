@@ -559,6 +559,7 @@ export type Database = {
       }
       bot_users: {
         Row: {
+          metadata: Json
           bot_id: string | null
           last_auto_dm_at: string | null
           opt_out: boolean
@@ -577,6 +578,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          metadata?: Json
           bot_id?: string | null
           last_auto_dm_at?: string | null
           opt_out?: boolean
@@ -590,11 +592,12 @@ export type Database = {
           language_code?: string | null
           last_name?: string | null
           state?: Json
-          telegram_id: number
+          telegram_id?: number | null
           updated_at?: string
           username?: string | null
         }
         Update: {
+          metadata?: Json
           bot_id?: string | null
           last_auto_dm_at?: string | null
           opt_out?: boolean
@@ -1322,7 +1325,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_broadcast_counts: {
+        Args: {
+          p_blocked: number
+          p_broadcast_id: string
+          p_failed: number
+          p_sent: number
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

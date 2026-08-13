@@ -199,9 +199,10 @@ async function setState(telegram_id: number, state: BotUser["state"]) {
       .eq("telegram_id", telegram_id)
       .maybeSingle();
     
-    if (existing?.state?.country_code) {
-      state.country_code = existing.state.country_code;
-      state.country_name = existing.state.country_name;
+    const existingState = existing?.state as BotUser["state"] | null;
+    if (existingState?.country_code) {
+      state.country_code = existingState.country_code;
+      state.country_name = existingState.country_name;
     }
   }
 
@@ -561,7 +562,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function sendLongHtmlMessage(chat_id: number, text: string) {
+async function sendLongHtmlMessage(chat_id: number | string, text: string) {
   if (text.length <= TELEGRAM_MESSAGE_MAX) {
     await tg("sendMessage", { chat_id, text, parse_mode: "HTML" });
     return;

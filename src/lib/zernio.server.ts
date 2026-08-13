@@ -2,6 +2,8 @@
  * Zernio API Client for Instagram & Multi-channel Integration
  */
 
+import type { Json } from "@/integrations-supabase/types";
+
 function getZernioKey(): string {
   const key = process.env.ZERNIO_API_KEY?.trim();
   if (!key) {
@@ -25,9 +27,9 @@ export type ZernioAccount = {
   platform: string;
   name?: string;
   username?: string;
-  profileId?: string;
+  profileId?: string | { _id?: string } | null;
   isExpired?: boolean;
-  metadata?: Record<string, unknown>;
+  metadata?: Json;
 };
 
 export type ZernioDmButton = {
@@ -46,8 +48,8 @@ export type ZernioCommentAutomation = {
   trigger?: "comment" | "story_reply";
   accountId: string;
   profileId?: string;
-  platformPostId?: string;
-  postId?: string;
+  platformPostId?: string | null;
+  postId?: string | null;
   postTitle?: string;
   keywords: string[];
   replyToAll?: boolean;
@@ -382,7 +384,7 @@ export async function createCommentAutomation(data: Partial<ZernioCommentAutomat
 
     // Ensure keywords are lowercase for better matching
     if (body.keywords) {
-      body.keywords = body.keywords.map(k => k.toLowerCase());
+      body.keywords = body.keywords.map((k: string) => k.toLowerCase());
     }
 
     const res = await zernioRequest<{ success: boolean; automation: ZernioCommentAutomation }>("/comment-automations", {
@@ -404,7 +406,7 @@ export async function updateCommentAutomation(automationId: string, data: Partia
     const body: Record<string, any> = { ...data };
     
     if (body.keywords) {
-      body.keywords = body.keywords.map(k => k.toLowerCase());
+      body.keywords = body.keywords.map((k: string) => k.toLowerCase());
     }
 
     const res = await zernioRequest<{ success: boolean; automation: ZernioCommentAutomation }>(`/comment-automations/${automationId}`, {

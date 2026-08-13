@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { TablesUpdate } from "@/integrations-supabase/types";
 import { requireAdmin } from "./admin-session.server";
 
 async function db() {
@@ -54,7 +55,7 @@ export const updateCategory = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     await requireAdmin();
     const s = await db();
-    const patch: Record<string, unknown> = {
+    const patch: TablesUpdate<"categories"> = {
       name: data.name,
       parent_id: data.parent_id ?? null,
       sort_order: data.sort_order ?? 0,
