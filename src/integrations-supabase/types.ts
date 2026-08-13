@@ -225,6 +225,9 @@ export type Database = {
           is_active: boolean
           sort_order: number
           created_at: string
+          duration_minutes: number | null
+          is_entry: boolean
+          is_public: boolean
         }
         Insert: {
           id?: string
@@ -237,6 +240,9 @@ export type Database = {
           is_active?: boolean
           sort_order?: number
           created_at?: string
+          duration_minutes?: number | null
+          is_entry?: boolean
+          is_public?: boolean
         }
         Update: {
           id?: string
@@ -249,6 +255,9 @@ export type Database = {
           is_active?: boolean
           sort_order?: number
           created_at?: string
+          duration_minutes?: number | null
+          is_entry?: boolean
+          is_public?: boolean
         }
         Relationships: [
           {

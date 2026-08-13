@@ -31,6 +31,8 @@ function AdminLayout() {
             <NavLink to="/admin/categories">Категории</NavLink>
             <NavLink to="/admin/products">Товары</NavLink>
             <NavLink to="/admin/orders">Заказы</NavLink>
+            {modules.vip && <NavLink to="/admin/vip">VIP</NavLink>}
+            {modules.blocked_users && <NavLink to="/admin/blocked">Блокировка</NavLink>}
             {modules.broadcasts && <NavLink to="/admin/broadcast">Рассылка</NavLink>}
             <NavLink to="/admin/payment-methods">Реквизиты</NavLink>
             {modules.instagram && <NavLink to="/admin/instagram">Instagram (Zernio)</NavLink>}

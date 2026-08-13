@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as LegalSlugRouteImport } from './routes/legal/$slug'
+import { Route as AdminVipRouteImport } from './routes/admin.vip'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminProductsRouteImport } from './routes/admin.products'
 import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
@@ -21,19 +22,17 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminBroadcastRouteImport } from './routes/admin.broadcast'
-import { Route as AdminIgIndexRouteImport } from './routes/admin.ig.index'
-import { Route as ApiCronIgCommentsRouteImport } from './routes/api/cron/ig-comments'
+import { Route as AdminBlockedRouteImport } from './routes/admin.blocked'
+import { Route as AdminVipIndexRouteImport } from './routes/admin.vip.index'
 import { Route as ApiCronEnsureWebhookRouteImport } from './routes/api/cron/ensure-webhook'
 import { Route as ApiCronBroadcastRouteImport } from './routes/api/cron/broadcast'
 import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
-import { Route as AdminIgPostsRouteImport } from './routes/admin.ig.posts'
-import { Route as AdminIgLogRouteImport } from './routes/admin.ig.log'
-import { Route as AdminIgLeadsRouteImport } from './routes/admin.ig.leads'
-import { Route as AdminIgKeywordsRouteImport } from './routes/admin.ig.keywords'
-import { Route as AdminIgExclusionsRouteImport } from './routes/admin.ig.exclusions'
-import { Route as AdminIgAccountRouteImport } from './routes/admin.ig.account'
+import { Route as AdminVipTariffsRouteImport } from './routes/admin.vip.tariffs'
+import { Route as AdminVipSubscribersRouteImport } from './routes/admin.vip.subscribers'
+import { Route as AdminVipSettingsRouteImport } from './routes/admin.vip.settings'
 import { Route as ApiPublicZernioWebhookRouteImport } from './routes/api/public/zernio/webhook'
-import { Route as ApiPublicUnipileWebhookRouteImport } from './routes/api/public/unipile/webhook'
+import { Route as ApiPublicVipCronRouteImport } from './routes/api/public/vip/cron'
+import { Route as ApiPublicTelegramWebhookVipRouteImport } from './routes/api/public/telegram/webhook-vip'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicRobokassaSuccessRouteImport } from './routes/api/public/robokassa/success'
 import { Route as ApiPublicRobokassaResultRouteImport } from './routes/api/public/robokassa/result'
@@ -65,6 +64,11 @@ const LegalSlugRoute = LegalSlugRouteImport.update({
   id: '/legal/$slug',
   path: '/legal/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVipRoute = AdminVipRouteImport.update({
+  id: '/vip',
+  path: '/vip',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
@@ -101,15 +105,15 @@ const AdminBroadcastRoute = AdminBroadcastRouteImport.update({
   path: '/broadcast',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminIgIndexRoute = AdminIgIndexRouteImport.update({
-  id: '/ig/',
-  path: '/ig/',
+const AdminBlockedRoute = AdminBlockedRouteImport.update({
+  id: '/blocked',
+  path: '/blocked',
   getParentRoute: () => AdminRoute,
 } as any)
-const ApiCronIgCommentsRoute = ApiCronIgCommentsRouteImport.update({
-  id: '/api/cron/ig-comments',
-  path: '/api/cron/ig-comments',
-  getParentRoute: () => rootRouteImport,
+const AdminVipIndexRoute = AdminVipIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminVipRoute,
 } as any)
 const ApiCronEnsureWebhookRoute = ApiCronEnsureWebhookRouteImport.update({
   id: '/api/cron/ensure-webhook',
@@ -126,46 +130,37 @@ const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
   path: '/api/admin/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIgPostsRoute = AdminIgPostsRouteImport.update({
-  id: '/ig/posts',
-  path: '/ig/posts',
-  getParentRoute: () => AdminRoute,
+const AdminVipTariffsRoute = AdminVipTariffsRouteImport.update({
+  id: '/tariffs',
+  path: '/tariffs',
+  getParentRoute: () => AdminVipRoute,
 } as any)
-const AdminIgLogRoute = AdminIgLogRouteImport.update({
-  id: '/ig/log',
-  path: '/ig/log',
-  getParentRoute: () => AdminRoute,
+const AdminVipSubscribersRoute = AdminVipSubscribersRouteImport.update({
+  id: '/subscribers',
+  path: '/subscribers',
+  getParentRoute: () => AdminVipRoute,
 } as any)
-const AdminIgLeadsRoute = AdminIgLeadsRouteImport.update({
-  id: '/ig/leads',
-  path: '/ig/leads',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminIgKeywordsRoute = AdminIgKeywordsRouteImport.update({
-  id: '/ig/keywords',
-  path: '/ig/keywords',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminIgExclusionsRoute = AdminIgExclusionsRouteImport.update({
-  id: '/ig/exclusions',
-  path: '/ig/exclusions',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminIgAccountRoute = AdminIgAccountRouteImport.update({
-  id: '/ig/account',
-  path: '/ig/account',
-  getParentRoute: () => AdminRoute,
+const AdminVipSettingsRoute = AdminVipSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminVipRoute,
 } as any)
 const ApiPublicZernioWebhookRoute = ApiPublicZernioWebhookRouteImport.update({
   id: '/api/public/zernio/webhook',
   path: '/api/public/zernio/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicUnipileWebhookRoute = ApiPublicUnipileWebhookRouteImport.update({
-  id: '/api/public/unipile/webhook',
-  path: '/api/public/unipile/webhook',
+const ApiPublicVipCronRoute = ApiPublicVipCronRouteImport.update({
+  id: '/api/public/vip/cron',
+  path: '/api/public/vip/cron',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTelegramWebhookVipRoute =
+  ApiPublicTelegramWebhookVipRouteImport.update({
+    id: '/api/public/telegram/webhook-vip',
+    path: '/api/public/telegram/webhook-vip',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -204,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/admin/blocked': typeof AdminBlockedRoute
   '/admin/broadcast': typeof AdminBroadcastRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/instagram': typeof AdminInstagramRoute
@@ -211,31 +207,30 @@ export interface FileRoutesByFullPath {
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/vip': typeof AdminVipRouteWithChildren
   '/legal/$slug': typeof LegalSlugRoute
   '/admin/': typeof AdminIndexRoute
-  '/admin/ig/account': typeof AdminIgAccountRoute
-  '/admin/ig/exclusions': typeof AdminIgExclusionsRoute
-  '/admin/ig/keywords': typeof AdminIgKeywordsRoute
-  '/admin/ig/leads': typeof AdminIgLeadsRoute
-  '/admin/ig/log': typeof AdminIgLogRoute
-  '/admin/ig/posts': typeof AdminIgPostsRoute
+  '/admin/vip/settings': typeof AdminVipSettingsRoute
+  '/admin/vip/subscribers': typeof AdminVipSubscribersRoute
+  '/admin/vip/tariffs': typeof AdminVipTariffsRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
-  '/api/cron/ig-comments': typeof ApiCronIgCommentsRoute
-  '/admin/ig/': typeof AdminIgIndexRoute
+  '/admin/vip/': typeof AdminVipIndexRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/robokassa/fail': typeof ApiPublicRobokassaFailRoute
   '/api/public/robokassa/result': typeof ApiPublicRobokassaResultRoute
   '/api/public/robokassa/success': typeof ApiPublicRobokassaSuccessRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
-  '/api/public/unipile/webhook': typeof ApiPublicUnipileWebhookRoute
+  '/api/public/telegram/webhook-vip': typeof ApiPublicTelegramWebhookVipRoute
+  '/api/public/vip/cron': typeof ApiPublicVipCronRoute
   '/api/public/zernio/webhook': typeof ApiPublicZernioWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/blocked': typeof AdminBlockedRoute
   '/admin/broadcast': typeof AdminBroadcastRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/instagram': typeof AdminInstagramRoute
@@ -245,24 +240,21 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/legal/$slug': typeof LegalSlugRoute
   '/admin': typeof AdminIndexRoute
-  '/admin/ig/account': typeof AdminIgAccountRoute
-  '/admin/ig/exclusions': typeof AdminIgExclusionsRoute
-  '/admin/ig/keywords': typeof AdminIgKeywordsRoute
-  '/admin/ig/leads': typeof AdminIgLeadsRoute
-  '/admin/ig/log': typeof AdminIgLogRoute
-  '/admin/ig/posts': typeof AdminIgPostsRoute
+  '/admin/vip/settings': typeof AdminVipSettingsRoute
+  '/admin/vip/subscribers': typeof AdminVipSubscribersRoute
+  '/admin/vip/tariffs': typeof AdminVipTariffsRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
-  '/api/cron/ig-comments': typeof ApiCronIgCommentsRoute
-  '/admin/ig': typeof AdminIgIndexRoute
+  '/admin/vip': typeof AdminVipIndexRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/robokassa/fail': typeof ApiPublicRobokassaFailRoute
   '/api/public/robokassa/result': typeof ApiPublicRobokassaResultRoute
   '/api/public/robokassa/success': typeof ApiPublicRobokassaSuccessRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
-  '/api/public/unipile/webhook': typeof ApiPublicUnipileWebhookRoute
+  '/api/public/telegram/webhook-vip': typeof ApiPublicTelegramWebhookVipRoute
+  '/api/public/vip/cron': typeof ApiPublicVipCronRoute
   '/api/public/zernio/webhook': typeof ApiPublicZernioWebhookRoute
 }
 export interface FileRoutesById {
@@ -270,6 +262,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/admin/blocked': typeof AdminBlockedRoute
   '/admin/broadcast': typeof AdminBroadcastRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/instagram': typeof AdminInstagramRoute
@@ -277,26 +270,24 @@ export interface FileRoutesById {
   '/admin/payment-methods': typeof AdminPaymentMethodsRoute
   '/admin/products': typeof AdminProductsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/vip': typeof AdminVipRouteWithChildren
   '/legal/$slug': typeof LegalSlugRoute
   '/admin/': typeof AdminIndexRoute
-  '/admin/ig/account': typeof AdminIgAccountRoute
-  '/admin/ig/exclusions': typeof AdminIgExclusionsRoute
-  '/admin/ig/keywords': typeof AdminIgKeywordsRoute
-  '/admin/ig/leads': typeof AdminIgLeadsRoute
-  '/admin/ig/log': typeof AdminIgLogRoute
-  '/admin/ig/posts': typeof AdminIgPostsRoute
+  '/admin/vip/settings': typeof AdminVipSettingsRoute
+  '/admin/vip/subscribers': typeof AdminVipSubscribersRoute
+  '/admin/vip/tariffs': typeof AdminVipTariffsRoute
   '/api/admin/upload': typeof ApiAdminUploadRoute
   '/api/cron/broadcast': typeof ApiCronBroadcastRoute
   '/api/cron/ensure-webhook': typeof ApiCronEnsureWebhookRoute
-  '/api/cron/ig-comments': typeof ApiCronIgCommentsRoute
-  '/admin/ig/': typeof AdminIgIndexRoute
+  '/admin/vip/': typeof AdminVipIndexRoute
   '/api/admin/file/$': typeof ApiAdminFileSplatRoute
   '/api/public/img/$': typeof ApiPublicImgSplatRoute
   '/api/public/robokassa/fail': typeof ApiPublicRobokassaFailRoute
   '/api/public/robokassa/result': typeof ApiPublicRobokassaResultRoute
   '/api/public/robokassa/success': typeof ApiPublicRobokassaSuccessRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
-  '/api/public/unipile/webhook': typeof ApiPublicUnipileWebhookRoute
+  '/api/public/telegram/webhook-vip': typeof ApiPublicTelegramWebhookVipRoute
+  '/api/public/vip/cron': typeof ApiPublicVipCronRoute
   '/api/public/zernio/webhook': typeof ApiPublicZernioWebhookRoute
 }
 export interface FileRouteTypes {
@@ -305,6 +296,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/admin/blocked'
     | '/admin/broadcast'
     | '/admin/categories'
     | '/admin/instagram'
@@ -312,31 +304,30 @@ export interface FileRouteTypes {
     | '/admin/payment-methods'
     | '/admin/products'
     | '/admin/settings'
+    | '/admin/vip'
     | '/legal/$slug'
     | '/admin/'
-    | '/admin/ig/account'
-    | '/admin/ig/exclusions'
-    | '/admin/ig/keywords'
-    | '/admin/ig/leads'
-    | '/admin/ig/log'
-    | '/admin/ig/posts'
+    | '/admin/vip/settings'
+    | '/admin/vip/subscribers'
+    | '/admin/vip/tariffs'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
     | '/api/cron/ensure-webhook'
-    | '/api/cron/ig-comments'
-    | '/admin/ig/'
+    | '/admin/vip/'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/robokassa/fail'
     | '/api/public/robokassa/result'
     | '/api/public/robokassa/success'
     | '/api/public/telegram/webhook'
-    | '/api/public/unipile/webhook'
+    | '/api/public/telegram/webhook-vip'
+    | '/api/public/vip/cron'
     | '/api/public/zernio/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/admin/blocked'
     | '/admin/broadcast'
     | '/admin/categories'
     | '/admin/instagram'
@@ -346,30 +337,28 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/legal/$slug'
     | '/admin'
-    | '/admin/ig/account'
-    | '/admin/ig/exclusions'
-    | '/admin/ig/keywords'
-    | '/admin/ig/leads'
-    | '/admin/ig/log'
-    | '/admin/ig/posts'
+    | '/admin/vip/settings'
+    | '/admin/vip/subscribers'
+    | '/admin/vip/tariffs'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
     | '/api/cron/ensure-webhook'
-    | '/api/cron/ig-comments'
-    | '/admin/ig'
+    | '/admin/vip'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/robokassa/fail'
     | '/api/public/robokassa/result'
     | '/api/public/robokassa/success'
     | '/api/public/telegram/webhook'
-    | '/api/public/unipile/webhook'
+    | '/api/public/telegram/webhook-vip'
+    | '/api/public/vip/cron'
     | '/api/public/zernio/webhook'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/login'
+    | '/admin/blocked'
     | '/admin/broadcast'
     | '/admin/categories'
     | '/admin/instagram'
@@ -377,26 +366,24 @@ export interface FileRouteTypes {
     | '/admin/payment-methods'
     | '/admin/products'
     | '/admin/settings'
+    | '/admin/vip'
     | '/legal/$slug'
     | '/admin/'
-    | '/admin/ig/account'
-    | '/admin/ig/exclusions'
-    | '/admin/ig/keywords'
-    | '/admin/ig/leads'
-    | '/admin/ig/log'
-    | '/admin/ig/posts'
+    | '/admin/vip/settings'
+    | '/admin/vip/subscribers'
+    | '/admin/vip/tariffs'
     | '/api/admin/upload'
     | '/api/cron/broadcast'
     | '/api/cron/ensure-webhook'
-    | '/api/cron/ig-comments'
-    | '/admin/ig/'
+    | '/admin/vip/'
     | '/api/admin/file/$'
     | '/api/public/img/$'
     | '/api/public/robokassa/fail'
     | '/api/public/robokassa/result'
     | '/api/public/robokassa/success'
     | '/api/public/telegram/webhook'
-    | '/api/public/unipile/webhook'
+    | '/api/public/telegram/webhook-vip'
+    | '/api/public/vip/cron'
     | '/api/public/zernio/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -408,14 +395,14 @@ export interface RootRouteChildren {
   ApiAdminUploadRoute: typeof ApiAdminUploadRoute
   ApiCronBroadcastRoute: typeof ApiCronBroadcastRoute
   ApiCronEnsureWebhookRoute: typeof ApiCronEnsureWebhookRoute
-  ApiCronIgCommentsRoute: typeof ApiCronIgCommentsRoute
   ApiAdminFileSplatRoute: typeof ApiAdminFileSplatRoute
   ApiPublicImgSplatRoute: typeof ApiPublicImgSplatRoute
   ApiPublicRobokassaFailRoute: typeof ApiPublicRobokassaFailRoute
   ApiPublicRobokassaResultRoute: typeof ApiPublicRobokassaResultRoute
   ApiPublicRobokassaSuccessRoute: typeof ApiPublicRobokassaSuccessRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
-  ApiPublicUnipileWebhookRoute: typeof ApiPublicUnipileWebhookRoute
+  ApiPublicTelegramWebhookVipRoute: typeof ApiPublicTelegramWebhookVipRoute
+  ApiPublicVipCronRoute: typeof ApiPublicVipCronRoute
   ApiPublicZernioWebhookRoute: typeof ApiPublicZernioWebhookRoute
 }
 
@@ -455,6 +442,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/legal/$slug'
       preLoaderRoute: typeof LegalSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/vip': {
+      id: '/admin/vip'
+      path: '/vip'
+      fullPath: '/admin/vip'
+      preLoaderRoute: typeof AdminVipRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/settings': {
       id: '/admin/settings'
@@ -505,19 +499,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBroadcastRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/ig/': {
-      id: '/admin/ig/'
-      path: '/ig'
-      fullPath: '/admin/ig/'
-      preLoaderRoute: typeof AdminIgIndexRouteImport
+    '/admin/blocked': {
+      id: '/admin/blocked'
+      path: '/blocked'
+      fullPath: '/admin/blocked'
+      preLoaderRoute: typeof AdminBlockedRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/api/cron/ig-comments': {
-      id: '/api/cron/ig-comments'
-      path: '/api/cron/ig-comments'
-      fullPath: '/api/cron/ig-comments'
-      preLoaderRoute: typeof ApiCronIgCommentsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/admin/vip/': {
+      id: '/admin/vip/'
+      path: '/'
+      fullPath: '/admin/vip/'
+      preLoaderRoute: typeof AdminVipIndexRouteImport
+      parentRoute: typeof AdminVipRoute
     }
     '/api/cron/ensure-webhook': {
       id: '/api/cron/ensure-webhook'
@@ -540,47 +534,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/ig/posts': {
-      id: '/admin/ig/posts'
-      path: '/ig/posts'
-      fullPath: '/admin/ig/posts'
-      preLoaderRoute: typeof AdminIgPostsRouteImport
-      parentRoute: typeof AdminRoute
+    '/admin/vip/tariffs': {
+      id: '/admin/vip/tariffs'
+      path: '/tariffs'
+      fullPath: '/admin/vip/tariffs'
+      preLoaderRoute: typeof AdminVipTariffsRouteImport
+      parentRoute: typeof AdminVipRoute
     }
-    '/admin/ig/log': {
-      id: '/admin/ig/log'
-      path: '/ig/log'
-      fullPath: '/admin/ig/log'
-      preLoaderRoute: typeof AdminIgLogRouteImport
-      parentRoute: typeof AdminRoute
+    '/admin/vip/subscribers': {
+      id: '/admin/vip/subscribers'
+      path: '/subscribers'
+      fullPath: '/admin/vip/subscribers'
+      preLoaderRoute: typeof AdminVipSubscribersRouteImport
+      parentRoute: typeof AdminVipRoute
     }
-    '/admin/ig/leads': {
-      id: '/admin/ig/leads'
-      path: '/ig/leads'
-      fullPath: '/admin/ig/leads'
-      preLoaderRoute: typeof AdminIgLeadsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/ig/keywords': {
-      id: '/admin/ig/keywords'
-      path: '/ig/keywords'
-      fullPath: '/admin/ig/keywords'
-      preLoaderRoute: typeof AdminIgKeywordsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/ig/exclusions': {
-      id: '/admin/ig/exclusions'
-      path: '/ig/exclusions'
-      fullPath: '/admin/ig/exclusions'
-      preLoaderRoute: typeof AdminIgExclusionsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/ig/account': {
-      id: '/admin/ig/account'
-      path: '/ig/account'
-      fullPath: '/admin/ig/account'
-      preLoaderRoute: typeof AdminIgAccountRouteImport
-      parentRoute: typeof AdminRoute
+    '/admin/vip/settings': {
+      id: '/admin/vip/settings'
+      path: '/settings'
+      fullPath: '/admin/vip/settings'
+      preLoaderRoute: typeof AdminVipSettingsRouteImport
+      parentRoute: typeof AdminVipRoute
     }
     '/api/public/zernio/webhook': {
       id: '/api/public/zernio/webhook'
@@ -589,11 +562,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicZernioWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/unipile/webhook': {
-      id: '/api/public/unipile/webhook'
-      path: '/api/public/unipile/webhook'
-      fullPath: '/api/public/unipile/webhook'
-      preLoaderRoute: typeof ApiPublicUnipileWebhookRouteImport
+    '/api/public/vip/cron': {
+      id: '/api/public/vip/cron'
+      path: '/api/public/vip/cron'
+      fullPath: '/api/public/vip/cron'
+      preLoaderRoute: typeof ApiPublicVipCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/webhook-vip': {
+      id: '/api/public/telegram/webhook-vip'
+      path: '/api/public/telegram/webhook-vip'
+      fullPath: '/api/public/telegram/webhook-vip'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookVipRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/telegram/webhook': {
@@ -641,7 +621,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminVipRouteChildren {
+  AdminVipSettingsRoute: typeof AdminVipSettingsRoute
+  AdminVipSubscribersRoute: typeof AdminVipSubscribersRoute
+  AdminVipTariffsRoute: typeof AdminVipTariffsRoute
+  AdminVipIndexRoute: typeof AdminVipIndexRoute
+}
+
+const AdminVipRouteChildren: AdminVipRouteChildren = {
+  AdminVipSettingsRoute: AdminVipSettingsRoute,
+  AdminVipSubscribersRoute: AdminVipSubscribersRoute,
+  AdminVipTariffsRoute: AdminVipTariffsRoute,
+  AdminVipIndexRoute: AdminVipIndexRoute,
+}
+
+const AdminVipRouteWithChildren = AdminVipRoute._addFileChildren(
+  AdminVipRouteChildren,
+)
+
 interface AdminRouteChildren {
+  AdminBlockedRoute: typeof AdminBlockedRoute
   AdminBroadcastRoute: typeof AdminBroadcastRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminInstagramRoute: typeof AdminInstagramRoute
@@ -649,17 +648,12 @@ interface AdminRouteChildren {
   AdminPaymentMethodsRoute: typeof AdminPaymentMethodsRoute
   AdminProductsRoute: typeof AdminProductsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminVipRoute: typeof AdminVipRouteWithChildren
   AdminIndexRoute: typeof AdminIndexRoute
-  AdminIgAccountRoute: typeof AdminIgAccountRoute
-  AdminIgExclusionsRoute: typeof AdminIgExclusionsRoute
-  AdminIgKeywordsRoute: typeof AdminIgKeywordsRoute
-  AdminIgLeadsRoute: typeof AdminIgLeadsRoute
-  AdminIgLogRoute: typeof AdminIgLogRoute
-  AdminIgPostsRoute: typeof AdminIgPostsRoute
-  AdminIgIndexRoute: typeof AdminIgIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBlockedRoute: AdminBlockedRoute,
   AdminBroadcastRoute: AdminBroadcastRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminInstagramRoute: AdminInstagramRoute,
@@ -667,14 +661,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPaymentMethodsRoute: AdminPaymentMethodsRoute,
   AdminProductsRoute: AdminProductsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminVipRoute: AdminVipRouteWithChildren,
   AdminIndexRoute: AdminIndexRoute,
-  AdminIgAccountRoute: AdminIgAccountRoute,
-  AdminIgExclusionsRoute: AdminIgExclusionsRoute,
-  AdminIgKeywordsRoute: AdminIgKeywordsRoute,
-  AdminIgLeadsRoute: AdminIgLeadsRoute,
-  AdminIgLogRoute: AdminIgLogRoute,
-  AdminIgPostsRoute: AdminIgPostsRoute,
-  AdminIgIndexRoute: AdminIgIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -687,14 +675,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminUploadRoute: ApiAdminUploadRoute,
   ApiCronBroadcastRoute: ApiCronBroadcastRoute,
   ApiCronEnsureWebhookRoute: ApiCronEnsureWebhookRoute,
-  ApiCronIgCommentsRoute: ApiCronIgCommentsRoute,
   ApiAdminFileSplatRoute: ApiAdminFileSplatRoute,
   ApiPublicImgSplatRoute: ApiPublicImgSplatRoute,
   ApiPublicRobokassaFailRoute: ApiPublicRobokassaFailRoute,
   ApiPublicRobokassaResultRoute: ApiPublicRobokassaResultRoute,
   ApiPublicRobokassaSuccessRoute: ApiPublicRobokassaSuccessRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
-  ApiPublicUnipileWebhookRoute: ApiPublicUnipileWebhookRoute,
+  ApiPublicTelegramWebhookVipRoute: ApiPublicTelegramWebhookVipRoute,
+  ApiPublicVipCronRoute: ApiPublicVipCronRoute,
   ApiPublicZernioWebhookRoute: ApiPublicZernioWebhookRoute,
 }
 export const routeTree = rootRouteImport

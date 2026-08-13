@@ -107,3 +107,81 @@ export async function ensureTelegramWebhook(): Promise<EnsureWebhookResult> {
     };
   }
 }
+
+
+type VipEnsureResult = {
+  name: "VIP";
+  ok: boolean;
+  action: "unchanged" | "set" | "skipped" | "error";
+  expected: string;
+  previousUrl: string;
+  currentUrl?: string;
+  error?: string;
+};
+
+async function vipApi(
+  token: string,
+  method: string,
+  payload: Record<string, unknown> = {},
+): Promise<{ ok: boolean; result?: unknown; description?: string }> {
+  const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return (await res.json().catch(() => ({ ok: false }))) as {
+    ok: boolean;
+    result?: unknown;
+    description?: string;
+  };
+}
+
+async function ensureVipWebhook(): Promise<VipEnsureResult> {
+  const expected = `${publicAppOrigin()}/api/public/telegram/webhook-vip`;
+  const token = process.env.VIP_BOT_TOKEN?.trim();
+  if (!token) {
+    return { name: "VIP", ok: true, action: "skipped", expected, previousUrl: "", error: "VIP_BOT_TOKEN not set" };
+  }
+
+  try {
+    const info = await vipApi(token, "getWebhookInfo");
+    if (!info.ok) {
+      return { name: "VIP", ok: false, action: "error", expected, previousUrl: "", error: info.description || "getWebhookInfo failed" };
+    }
+
+    const previousUrl = String((info.result as { url?: string } | undefined)?.url || "").trim();
+    if (previousUrl === expected) {
+      return { name: "VIP", ok: true, action: "unchanged", expected, previousUrl, currentUrl: previousUrl };
+    }
+
+    const secret = (process.env.VIP_TELEGRAM_WEBHOOK_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET || "").trim();
+    const payload: Record<string, unknown> = { url: expected, drop_pending_updates: false };
+    if (secret) payload.secret_token = secret;
+    const set = await vipApi(token, "setWebhook", payload);
+    if (!set.ok) {
+      return { name: "VIP", ok: false, action: "error", expected, previousUrl, error: set.description || "setWebhook failed" };
+    }
+
+    return { name: "VIP", ok: true, action: "set", expected, previousUrl, currentUrl: expected };
+  } catch (error) {
+    return { name: "VIP", ok: false, action: "error", expected, previousUrl: "", error: (error as Error).message };
+  }
+}
+
+/** Ensure the shop webhook and, when enabled, the separate VIP webhook. */
+export async function ensureDidWebhooks(): Promise<{ ok: boolean; bots: Array<EnsureWebhookResult | VipEnsureResult> }> {
+  const shop = await ensureTelegramWebhook();
+  const { moduleEnabled } = await import("./tenant-config.server");
+  const vipEnabled = await moduleEnabled("vip");
+  const vip = vipEnabled
+    ? await ensureVipWebhook()
+    : {
+        name: "VIP" as const,
+        ok: true,
+        action: "skipped" as const,
+        expected: `${publicAppOrigin()}/api/public/telegram/webhook-vip`,
+        previousUrl: "",
+        error: "VIP module disabled",
+      };
+  return { ok: shop.ok && vip.ok, bots: [shop, vip] };
+}
