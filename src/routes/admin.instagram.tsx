@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCapabilitiesFn } from "@/lib/capabilities.functions";
 import { useState } from "react";
 import { Button } from "@/components-ui/button";
 import { Input } from "@/components-ui/input";
@@ -46,6 +47,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Badge } from "@/components-ui/badge";
 
 export const Route = createFileRoute("/admin/instagram")({
+  beforeLoad: async () => {
+    const modules = await getCapabilitiesFn();
+    if (!modules.instagram) throw redirect({ to: "/admin" });
+  },
   head: () => ({ meta: [{ title: "Instagram Automation — Zernio" }] }),
   component: AdminInstagramPage,
 });

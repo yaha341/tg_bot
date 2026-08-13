@@ -6,10 +6,16 @@ async function db() {
   return supabaseAdmin;
 }
 
+async function requireInstagram() {
+  const { requireModule } = await import("./tenant-config.server");
+  await requireModule("instagram");
+}
+
 export const getInstagramConnectUrlFn = createServerFn({ method: "GET" }).handler(async () => {
   const { requireAdmin } = await import("./admin-session.server");
   const { getZernioConnectUrl } = await import("./zernio.server");
   await requireAdmin();
+  await requireInstagram();
 
   const origin =
     process.env.PUBLIC_APP_URL ||
@@ -24,6 +30,7 @@ export const getInstagramAccountsFn = createServerFn({ method: "GET" }).handler(
   const { requireAdmin } = await import("./admin-session.server");
   const { listZernioAccounts } = await import("./zernio.server");
   await requireAdmin();
+  await requireInstagram();
   const accounts = await listZernioAccounts();
   return { accounts };
 });
@@ -32,6 +39,7 @@ export const registerInstagramWebhookFn = createServerFn({ method: "POST" }).han
   const { requireAdmin } = await import("./admin-session.server");
   const { registerZernioWebhook } = await import("./zernio.server");
   await requireAdmin();
+  await requireInstagram();
 
   const origin =
     process.env.PUBLIC_APP_URL ||
@@ -51,6 +59,7 @@ export const getAutomationsFn = createServerFn({ method: "GET" }).handler(async 
   const { requireAdmin } = await import("./admin-session.server");
   const { listCommentAutomations } = await import("./zernio.server");
   await requireAdmin();
+  await requireInstagram();
   const res = await listCommentAutomations();
   
   // Добавляем флаг replyToAll для удобства фронтенда
@@ -97,6 +106,7 @@ export const saveAutomationFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { createCommentAutomation, deleteCommentAutomation, ensureDefaultZernioProfile, updateCommentAutomation } = await import("./zernio.server");
     await requireAdmin();
+  await requireInstagram();
     if (data.platformPostId && data.platformPostId === data.accountId) {
       throw new Error("Выбран ID аккаунта вместо ID публикации. Обновите список и выберите пост заново.");
     }
@@ -152,6 +162,7 @@ export const deleteAutomationFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { deleteCommentAutomation } = await import("./zernio.server");
     await requireAdmin();
+  await requireInstagram();
     return await deleteCommentAutomation(data.id);
   });
 
@@ -166,6 +177,7 @@ export const toggleAutomationFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { updateCommentAutomation } = await import("./zernio.server");
     await requireAdmin();
+  await requireInstagram();
     return await updateCommentAutomation(data.id, { isActive: data.isActive });
   });
 
@@ -178,6 +190,7 @@ export const getAutomationLogsFn = createServerFn({ method: "GET" })
     const { requireAdmin } = await import("./admin-session.server");
     const { getCommentAutomationLogs } = await import("./zernio.server");
     await requireAdmin();
+  await requireInstagram();
     return await getCommentAutomationLogs(data.id);
   });
 
@@ -186,6 +199,7 @@ export const getAutomationLogsFn = createServerFn({ method: "GET" })
 export const getInstagramLogsFn = createServerFn({ method: "GET" }).handler(async () => {
   const { requireAdmin } = await import("./admin-session.server");
   await requireAdmin();
+  await requireInstagram();
 
   const s = await db();
   const { data, error } = await s
@@ -211,6 +225,7 @@ export const disconnectInstagramAccountFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { disconnectZernioAccount } = await import("./zernio.server");
     await requireAdmin();
+  await requireInstagram();
     return await disconnectZernioAccount(data.accountId);
   });
 
@@ -220,6 +235,7 @@ export const getZernioPostsFn = createServerFn({ method: "GET" })
     const { requireAdmin } = await import("./admin-session.server");
     const { listZernioPosts } = await import("./zernio.server");
     await requireAdmin();
+  await requireInstagram();
     const posts = await listZernioPosts(data.accountId);
     return { posts };
   });

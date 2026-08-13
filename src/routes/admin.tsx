@@ -1,12 +1,14 @@
 import { createFileRoute, Outlet, Link, redirect, useRouter, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { adminCheck, adminLogout } from "@/lib/admin.functions";
+import { getCapabilitiesFn } from "@/lib/capabilities.functions";
 import { Button } from "@/components-ui/button";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async () => {
     const res = await adminCheck();
     if (!res.authed) throw redirect({ to: "/login" });
+    return { modules: await getCapabilitiesFn() };
   },
   head: () => ({ meta: [{ title: "Админ-панель" }] }),
   component: AdminLayout,
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/admin")({
 
 function AdminLayout() {
   const router = useRouter();
+  const { modules } = Route.useRouteContext();
   const logout = useServerFn(adminLogout);
 
   return (
@@ -28,9 +31,9 @@ function AdminLayout() {
             <NavLink to="/admin/categories">Категории</NavLink>
             <NavLink to="/admin/products">Товары</NavLink>
             <NavLink to="/admin/orders">Заказы</NavLink>
-            <NavLink to="/admin/broadcast">Рассылка</NavLink>
+            {modules.broadcasts && <NavLink to="/admin/broadcast">Рассылка</NavLink>}
             <NavLink to="/admin/payment-methods">Реквизиты</NavLink>
-            <NavLink to="/admin/instagram">Instagram (Zernio)</NavLink>
+            {modules.instagram && <NavLink to="/admin/instagram">Instagram (Zernio)</NavLink>}
             <NavLink to="/admin/settings">Настройки</NavLink>
           </div>
           <Button

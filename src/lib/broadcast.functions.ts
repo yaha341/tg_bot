@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+async function requireBroadcasts() {
+  const { requireModule } = await import("./tenant-config.server");
+  await requireModule("broadcasts");
+}
+
 const payloadSchema = z.object({
   message_text: z.string().min(1).max(4000),
   photo_paths: z.array(z.string().min(1)).max(10).default([]),
@@ -23,6 +28,7 @@ export const previewBroadcastAudience = createServerFn({ method: "GET" })
     const { requireAdmin } = await import("./admin-session.server");
     const { resolveAudienceIds } = await import("./broadcast.server");
     await requireAdmin();
+    await requireBroadcasts();
     const ids = await resolveAudienceIds(data.audience_type, { country_code: data.country_code });
     return { count: new Set(ids).size };
   });
@@ -33,6 +39,7 @@ export const sendTestBroadcastFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { sendTestBroadcast } = await import("./broadcast.server");
     await requireAdmin();
+    await requireBroadcasts();
     return await sendTestBroadcast({
       ...data,
       audience_filter: data.audience_filter,
@@ -45,6 +52,7 @@ export const startBroadcastFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { createBroadcast, processBroadcastBatch } = await import("./broadcast.server");
     await requireAdmin();
+    await requireBroadcasts();
     const broadcast = await createBroadcast({
       ...data,
       audience_filter: data.audience_filter,
@@ -74,6 +82,7 @@ export const getBroadcastFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
+    await requireBroadcasts();
     const { supabaseAdmin } = await import("@/integrations-supabase/client.server");
     const { data: row, error } = await supabaseAdmin.from("broadcasts").select("*").eq("id", data.id).single();
     if (error) throw new Error(error.message);
@@ -93,6 +102,7 @@ export const cancelBroadcastFn = createServerFn({ method: "POST" })
     const { requireAdmin } = await import("./admin-session.server");
     const { cancelBroadcast } = await import("./broadcast.server");
     await requireAdmin();
+    await requireBroadcasts();
     return await cancelBroadcast(data.id);
   });
 
@@ -101,6 +111,7 @@ export const getBroadcastUploadUrl = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     await requireAdmin();
+    await requireBroadcasts();
     const ext = (data.filename.split(".").pop() || "jpg").toLowerCase().slice(0, 10);
     const key = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const { supabaseAdmin } = await import("@/integrations-supabase/client.server");

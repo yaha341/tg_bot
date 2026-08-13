@@ -13,6 +13,11 @@ export const Route = createFileRoute("/api/public/zernio/webhook")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { moduleEnabled } = await import("@/lib/tenant-config.server");
+        if (!(await moduleEnabled("instagram"))) {
+          return new Response("ok", { status: 200 });
+        }
+
         let payload: any;
         try {
           payload = await request.json();

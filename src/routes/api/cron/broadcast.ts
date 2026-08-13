@@ -21,15 +21,19 @@ export const Route = createFileRoute("/api/cron/broadcast")({
         }
         try {
           const webhook = await ensureTelegramWebhook();
+          const { moduleEnabled } = await import("@/lib/tenant-config.server");
+          const broadcastsEnabled = await moduleEnabled("broadcasts");
 
           let total = 0;
           let done = false;
           let last: Awaited<ReturnType<typeof processBroadcastBatch>> | undefined;
-          for (let i = 0; i < 4 && !done; i++) {
-            last = await processBroadcastBatch();
-            total += last.processed;
-            done = last.done;
-            if (!last.processed) break;
+          if (broadcastsEnabled) {
+            for (let i = 0; i < 4 && !done; i++) {
+              last = await processBroadcastBatch();
+              total += last.processed;
+              done = last.done;
+              if (!last.processed) break;
+            }
           }
 
           let deliveries: Awaited<ReturnType<typeof processPendingDeliveries>> | { error: string } | undefined;
@@ -40,7 +44,15 @@ export const Route = createFileRoute("/api/cron/broadcast")({
             deliveries = { error: e?.message || String(e) };
           }
 
-          return Response.json({ ok: true, webhook, processed: total, done, deliveries, ...last });
+          return Response.json({
+            ok: true,
+            webhook,
+            broadcasts_enabled: broadcastsEnabled,
+            processed: total,
+            done,
+            deliveries,
+            ...last,
+          });
         } catch (e: any) {
           console.error("[cron/broadcast]", e);
           return Response.json({ ok: false, error: e.message }, { status: 500 });
