@@ -308,12 +308,21 @@ export async function sendZernioInboxMessage(
       body.attachmentUrl = attachmentUrl;
       body.attachmentType = attachmentType || "image";
     }
+    /**
+     * Кнопки — только те, что просил вызывающий.
+     *
+     * Здесь стояла догадка: если в тексте есть слово «корзина», подставить кнопку
+     * «Оформить заказ». На живой проверке это выстрелило ровно так, как и должно
+     * было: на «/start» бот ответил «Отменил, корзина пуста» — и приклеил к
+     * отмене кнопку оформления. Человек нажал её при пустой корзине и уехал в
+     * тупик, а выглядело это как предложение оформить то, что только что
+     * отменили.
+     *
+     * Кнопку под ответом с корзиной ставит sendCart и добавление товара — там,
+     * где оформлять действительно есть что.
+     */
     if (buttons?.length) {
       body.buttons = buttons.slice(0, 3);
-    } else if (message.toLowerCase().includes("корзин")) {
-      // The Direct store's cart response always exposes the next action;
-      // this prevents customers from having to guess a text command.
-      body.buttons = [{ type: "postback", title: "Оформить заказ", payload: "CHECKOUT" }];
     }
 
     // Внутри обработки вебхука повтор доставки не должен обернуться вторым

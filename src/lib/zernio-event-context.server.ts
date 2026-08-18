@@ -15,12 +15,39 @@ import crypto from "node:crypto";
  * два десятка сигнатур и полагаться на то, что в новом коде о нём вспомнят.
  * AsyncLocalStorage выставляет его один раз на входе в обработку.
  */
-const store = new AsyncLocalStorage<{ eventId: string }>();
+type EventContext = {
+  eventId: string | null;
+  /**
+   * Человек попросил сам — командой, кнопкой, номером товара, чеком или ответом
+   * на вопрос бота. Такое сообщение обязано получить ответ, даже если ответ
+   * дословно повторяет предыдущий (см. sendDirectReply).
+   */
+  explicit: boolean;
+};
 
-/** Выполнить обработку события так, чтобы отправки внутри знали его идентификатор. */
+const store = new AsyncLocalStorage<EventContext>();
+
+/** Выполнить обработку события так, чтобы отправки внутри знали его контекст. */
 export function runWithZernioEvent<T>(eventId: string | null, task: () => Promise<T>): Promise<T> {
-  if (!eventId) return task();
-  return store.run({ eventId }, task);
+  return store.run({ eventId, explicit: false }, task);
+}
+
+/**
+ * Отметить, что текущее сообщение — просьба, а не обычная переписка.
+ *
+ * Ставится один раз на входе в разбор, до любых отправок. Через контекст, а не
+ * параметром: ответ рождается в десятке функций, и протаскивать флаг через все
+ * сигнатуры значило бы однажды забыть его — а забытый флаг здесь выглядит как
+ * молчащий бот, что и случилось при живой проверке.
+ */
+export function markExplicitRequest() {
+  const context = store.getStore();
+  if (context) context.explicit = true;
+}
+
+/** Была ли текущая реплика просьбой. Вне обработки события — считаем, что да. */
+export function isExplicitRequest(): boolean {
+  return store.getStore()?.explicit ?? true;
 }
 
 /**
@@ -36,7 +63,7 @@ export function runWithZernioEvent<T>(eventId: string | null, task: () => Promis
  */
 export function idempotencyKeyFor(body: unknown): string | undefined {
   const context = store.getStore();
-  if (!context) return undefined;
+  if (!context?.eventId) return undefined;
   return crypto
     .createHash("sha256")
     .update(`${context.eventId}:${JSON.stringify(body)}`)

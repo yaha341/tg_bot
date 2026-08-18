@@ -9,60 +9,55 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as OperatorRouteImport } from './routes/operator'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OperatorRouteImport } from './routes/operator'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as OperatorLoginRouteImport } from './routes/operator.login'
-import { Route as OperatorAuthedRouteImport } from './routes/operator._authed'
-import { Route as LegalSlugRouteImport } from './routes/legal/$slug'
-import { Route as AdminVipRouteImport } from './routes/admin.vip'
-import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
-import { Route as AdminProductsRouteImport } from './routes/admin.products'
-import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
-import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
-import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
-import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
-import { Route as AdminBroadcastRouteImport } from './routes/admin.broadcast'
 import { Route as AdminBlockedRouteImport } from './routes/admin.blocked'
-import { Route as OperatorAuthedIndexRouteImport } from './routes/operator._authed.index'
+import { Route as AdminBroadcastRouteImport } from './routes/admin.broadcast'
+import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
+import { Route as AdminInstagramRouteImport } from './routes/admin.instagram'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as AdminPaymentMethodsRouteImport } from './routes/admin.payment-methods'
+import { Route as AdminProductsRouteImport } from './routes/admin.products'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminVipRouteImport } from './routes/admin.vip'
+import { Route as LegalSlugRouteImport } from './routes/legal/$slug'
+import { Route as OperatorAuthedRouteImport } from './routes/operator._authed'
+import { Route as OperatorLoginRouteImport } from './routes/operator.login'
 import { Route as AdminVipIndexRouteImport } from './routes/admin.vip.index'
-import { Route as OperatorAuthedOnboardRouteImport } from './routes/operator._authed.onboard'
-import { Route as OperatorAuthedJournalRouteImport } from './routes/operator._authed.journal'
-import { Route as OperatorAuthedBroadcastRouteImport } from './routes/operator._authed.broadcast'
-import { Route as OperatorAuthedBotIdRouteImport } from './routes/operator._authed.$botId'
-import { Route as ApiOperatorCronSubscriptionsRouteImport } from './routes/api/operator-cron/subscriptions'
-import { Route as ApiInternalSetWebhookRouteImport } from './routes/api/internal/set-webhook'
-import { Route as ApiInternalReloadRouteImport } from './routes/api/internal/reload'
-import { Route as ApiInternalNotifyOwnerRouteImport } from './routes/api/internal/notify-owner'
-import { Route as ApiInternalHealthRouteImport } from './routes/api/internal/health'
-import { Route as ApiInternalDiagnosticsRouteImport } from './routes/api/internal/diagnostics'
-import { Route as ApiCronEnsureWebhookRouteImport } from './routes/api/cron/ensure-webhook'
-import { Route as ApiCronBroadcastRouteImport } from './routes/api/cron/broadcast'
-import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
-import { Route as AdminVipTariffsRouteImport } from './routes/admin.vip.tariffs'
-import { Route as AdminVipSubscribersRouteImport } from './routes/admin.vip.subscribers'
 import { Route as AdminVipSettingsRouteImport } from './routes/admin.vip.settings'
-import { Route as ApiPublicZernioWebhookRouteImport } from './routes/api/public/zernio/webhook'
-import { Route as ApiPublicVipCronRouteImport } from './routes/api/public/vip/cron'
-import { Route as ApiPublicTelegramWebhookVipRouteImport } from './routes/api/public/telegram/webhook-vip'
-import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
-import { Route as ApiPublicTelegramEnsureWebhookRouteImport } from './routes/api/public/telegram/ensure-webhook'
-import { Route as ApiPublicRobokassaSuccessRouteImport } from './routes/api/public/robokassa/success'
-import { Route as ApiPublicRobokassaResultRouteImport } from './routes/api/public/robokassa/result'
-import { Route as ApiPublicRobokassaFailRouteImport } from './routes/api/public/robokassa/fail'
-import { Route as ApiPublicImgSplatRouteImport } from './routes/api/public/img/$'
+import { Route as AdminVipSubscribersRouteImport } from './routes/admin.vip.subscribers'
+import { Route as AdminVipTariffsRouteImport } from './routes/admin.vip.tariffs'
+import { Route as ApiAdminUploadRouteImport } from './routes/api/admin/upload'
+import { Route as ApiCronBroadcastRouteImport } from './routes/api/cron/broadcast'
+import { Route as ApiCronEnsureWebhookRouteImport } from './routes/api/cron/ensure-webhook'
+import { Route as ApiInternalDiagnosticsRouteImport } from './routes/api/internal/diagnostics'
+import { Route as ApiInternalHealthRouteImport } from './routes/api/internal/health'
+import { Route as ApiInternalNotifyOwnerRouteImport } from './routes/api/internal/notify-owner'
+import { Route as ApiInternalReloadRouteImport } from './routes/api/internal/reload'
+import { Route as ApiInternalSetWebhookRouteImport } from './routes/api/internal/set-webhook'
+import { Route as ApiOperatorCronSubscriptionsRouteImport } from './routes/api/operator-cron/subscriptions'
+import { Route as OperatorAuthedIndexRouteImport } from './routes/operator._authed.index'
+import { Route as OperatorAuthedBotIdRouteImport } from './routes/operator._authed.$botId'
+import { Route as OperatorAuthedBroadcastRouteImport } from './routes/operator._authed.broadcast'
+import { Route as OperatorAuthedJournalRouteImport } from './routes/operator._authed.journal'
+import { Route as OperatorAuthedOnboardRouteImport } from './routes/operator._authed.onboard'
 import { Route as ApiAdminFileSplatRouteImport } from './routes/api/admin/file/$'
+import { Route as ApiPublicImgSplatRouteImport } from './routes/api/public/img/$'
+import { Route as ApiPublicRobokassaFailRouteImport } from './routes/api/public/robokassa/fail'
+import { Route as ApiPublicRobokassaResultRouteImport } from './routes/api/public/robokassa/result'
+import { Route as ApiPublicRobokassaSuccessRouteImport } from './routes/api/public/robokassa/success'
+import { Route as ApiPublicTelegramEnsureWebhookRouteImport } from './routes/api/public/telegram/ensure-webhook'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
+import { Route as ApiPublicTelegramWebhookVipRouteImport } from './routes/api/public/telegram/webhook-vip'
+import { Route as ApiPublicVipCronRouteImport } from './routes/api/public/vip/cron'
+import { Route as ApiPublicZernioWebhookRouteImport } from './routes/api/public/zernio/webhook'
 
-const OperatorRoute = OperatorRouteImport.update({
-  id: '/operator',
-  path: '/operator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -70,9 +65,14 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperatorRoute = OperatorRouteImport.update({
+  id: '/operator',
+  path: '/operator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -80,53 +80,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const OperatorLoginRoute = OperatorLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => OperatorRoute,
-} as any)
-const OperatorAuthedRoute = OperatorAuthedRouteImport.update({
-  id: '/_authed',
-  getParentRoute: () => OperatorRoute,
-} as any)
-const LegalSlugRoute = LegalSlugRouteImport.update({
-  id: '/legal/$slug',
-  path: '/legal/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminVipRoute = AdminVipRouteImport.update({
-  id: '/vip',
-  path: '/vip',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminProductsRoute = AdminProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPaymentMethodsRoute = AdminPaymentMethodsRouteImport.update({
-  id: '/payment-methods',
-  path: '/payment-methods',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOrdersRoute = AdminOrdersRouteImport.update({
-  id: '/orders',
-  path: '/orders',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminInstagramRoute = AdminInstagramRouteImport.update({
-  id: '/instagram',
-  path: '/instagram',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
-  id: '/categories',
-  path: '/categories',
+const AdminBlockedRoute = AdminBlockedRouteImport.update({
+  id: '/blocked',
+  path: '/blocked',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBroadcastRoute = AdminBroadcastRouteImport.update({
@@ -134,95 +90,58 @@ const AdminBroadcastRoute = AdminBroadcastRouteImport.update({
   path: '/broadcast',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminBlockedRoute = AdminBlockedRouteImport.update({
-  id: '/blocked',
-  path: '/blocked',
+const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => AdminRoute,
 } as any)
-const OperatorAuthedIndexRoute = OperatorAuthedIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OperatorAuthedRoute,
+const AdminInstagramRoute = AdminInstagramRouteImport.update({
+  id: '/instagram',
+  path: '/instagram',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPaymentMethodsRoute = AdminPaymentMethodsRouteImport.update({
+  id: '/payment-methods',
+  path: '/payment-methods',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProductsRoute = AdminProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVipRoute = AdminVipRouteImport.update({
+  id: '/vip',
+  path: '/vip',
+  getParentRoute: () => AdminRoute,
+} as any)
+const LegalSlugRoute = LegalSlugRouteImport.update({
+  id: '/legal/$slug',
+  path: '/legal/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperatorAuthedRoute = OperatorAuthedRouteImport.update({
+  id: '/_authed',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const OperatorLoginRoute = OperatorLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => OperatorRoute,
 } as any)
 const AdminVipIndexRoute = AdminVipIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminVipRoute,
-} as any)
-const OperatorAuthedOnboardRoute = OperatorAuthedOnboardRouteImport.update({
-  id: '/onboard',
-  path: '/onboard',
-  getParentRoute: () => OperatorAuthedRoute,
-} as any)
-const OperatorAuthedJournalRoute = OperatorAuthedJournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
-  getParentRoute: () => OperatorAuthedRoute,
-} as any)
-const OperatorAuthedBroadcastRoute = OperatorAuthedBroadcastRouteImport.update({
-  id: '/broadcast',
-  path: '/broadcast',
-  getParentRoute: () => OperatorAuthedRoute,
-} as any)
-const OperatorAuthedBotIdRoute = OperatorAuthedBotIdRouteImport.update({
-  id: '/$botId',
-  path: '/$botId',
-  getParentRoute: () => OperatorAuthedRoute,
-} as any)
-const ApiOperatorCronSubscriptionsRoute =
-  ApiOperatorCronSubscriptionsRouteImport.update({
-    id: '/api/operator-cron/subscriptions',
-    path: '/api/operator-cron/subscriptions',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiInternalSetWebhookRoute = ApiInternalSetWebhookRouteImport.update({
-  id: '/api/internal/set-webhook',
-  path: '/api/internal/set-webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalReloadRoute = ApiInternalReloadRouteImport.update({
-  id: '/api/internal/reload',
-  path: '/api/internal/reload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalNotifyOwnerRoute = ApiInternalNotifyOwnerRouteImport.update({
-  id: '/api/internal/notify-owner',
-  path: '/api/internal/notify-owner',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalHealthRoute = ApiInternalHealthRouteImport.update({
-  id: '/api/internal/health',
-  path: '/api/internal/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiInternalDiagnosticsRoute = ApiInternalDiagnosticsRouteImport.update({
-  id: '/api/internal/diagnostics',
-  path: '/api/internal/diagnostics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronEnsureWebhookRoute = ApiCronEnsureWebhookRouteImport.update({
-  id: '/api/cron/ensure-webhook',
-  path: '/api/cron/ensure-webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCronBroadcastRoute = ApiCronBroadcastRouteImport.update({
-  id: '/api/cron/broadcast',
-  path: '/api/cron/broadcast',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
-  id: '/api/admin/upload',
-  path: '/api/admin/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminVipTariffsRoute = AdminVipTariffsRouteImport.update({
-  id: '/tariffs',
-  path: '/tariffs',
-  getParentRoute: () => AdminVipRoute,
-} as any)
-const AdminVipSubscribersRoute = AdminVipSubscribersRouteImport.update({
-  id: '/subscribers',
-  path: '/subscribers',
   getParentRoute: () => AdminVipRoute,
 } as any)
 const AdminVipSettingsRoute = AdminVipSettingsRouteImport.update({
@@ -230,32 +149,106 @@ const AdminVipSettingsRoute = AdminVipSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminVipRoute,
 } as any)
-const ApiPublicZernioWebhookRoute = ApiPublicZernioWebhookRouteImport.update({
-  id: '/api/public/zernio/webhook',
-  path: '/api/public/zernio/webhook',
+const AdminVipSubscribersRoute = AdminVipSubscribersRouteImport.update({
+  id: '/subscribers',
+  path: '/subscribers',
+  getParentRoute: () => AdminVipRoute,
+} as any)
+const AdminVipTariffsRoute = AdminVipTariffsRouteImport.update({
+  id: '/tariffs',
+  path: '/tariffs',
+  getParentRoute: () => AdminVipRoute,
+} as any)
+const ApiAdminUploadRoute = ApiAdminUploadRouteImport.update({
+  id: '/api/admin/upload',
+  path: '/api/admin/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicVipCronRoute = ApiPublicVipCronRouteImport.update({
-  id: '/api/public/vip/cron',
-  path: '/api/public/vip/cron',
+const ApiCronBroadcastRoute = ApiCronBroadcastRouteImport.update({
+  id: '/api/cron/broadcast',
+  path: '/api/cron/broadcast',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicTelegramWebhookVipRoute =
-  ApiPublicTelegramWebhookVipRouteImport.update({
-    id: '/api/public/telegram/webhook-vip',
-    path: '/api/public/telegram/webhook-vip',
+const ApiCronEnsureWebhookRoute = ApiCronEnsureWebhookRouteImport.update({
+  id: '/api/cron/ensure-webhook',
+  path: '/api/cron/ensure-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalDiagnosticsRoute = ApiInternalDiagnosticsRouteImport.update({
+  id: '/api/internal/diagnostics',
+  path: '/api/internal/diagnostics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalHealthRoute = ApiInternalHealthRouteImport.update({
+  id: '/api/internal/health',
+  path: '/api/internal/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalNotifyOwnerRoute = ApiInternalNotifyOwnerRouteImport.update({
+  id: '/api/internal/notify-owner',
+  path: '/api/internal/notify-owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalReloadRoute = ApiInternalReloadRouteImport.update({
+  id: '/api/internal/reload',
+  path: '/api/internal/reload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalSetWebhookRoute = ApiInternalSetWebhookRouteImport.update({
+  id: '/api/internal/set-webhook',
+  path: '/api/internal/set-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOperatorCronSubscriptionsRoute =
+  ApiOperatorCronSubscriptionsRouteImport.update({
+    id: '/api/operator-cron/subscriptions',
+    path: '/api/operator-cron/subscriptions',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicTelegramWebhookRoute =
-  ApiPublicTelegramWebhookRouteImport.update({
-    id: '/api/public/telegram/webhook',
-    path: '/api/public/telegram/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicTelegramEnsureWebhookRoute =
-  ApiPublicTelegramEnsureWebhookRouteImport.update({
-    id: '/api/public/telegram/ensure-webhook',
-    path: '/api/public/telegram/ensure-webhook',
+const OperatorAuthedIndexRoute = OperatorAuthedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OperatorAuthedRoute,
+} as any)
+const OperatorAuthedBotIdRoute = OperatorAuthedBotIdRouteImport.update({
+  id: '/$botId',
+  path: '/$botId',
+  getParentRoute: () => OperatorAuthedRoute,
+} as any)
+const OperatorAuthedBroadcastRoute = OperatorAuthedBroadcastRouteImport.update({
+  id: '/broadcast',
+  path: '/broadcast',
+  getParentRoute: () => OperatorAuthedRoute,
+} as any)
+const OperatorAuthedJournalRoute = OperatorAuthedJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => OperatorAuthedRoute,
+} as any)
+const OperatorAuthedOnboardRoute = OperatorAuthedOnboardRouteImport.update({
+  id: '/onboard',
+  path: '/onboard',
+  getParentRoute: () => OperatorAuthedRoute,
+} as any)
+const ApiAdminFileSplatRoute = ApiAdminFileSplatRouteImport.update({
+  id: '/api/admin/file/$',
+  path: '/api/admin/file/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicImgSplatRoute = ApiPublicImgSplatRouteImport.update({
+  id: '/api/public/img/$',
+  path: '/api/public/img/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRobokassaFailRoute = ApiPublicRobokassaFailRouteImport.update({
+  id: '/api/public/robokassa/fail',
+  path: '/api/public/robokassa/fail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRobokassaResultRoute =
+  ApiPublicRobokassaResultRouteImport.update({
+    id: '/api/public/robokassa/result',
+    path: '/api/public/robokassa/result',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicRobokassaSuccessRoute =
@@ -264,25 +257,32 @@ const ApiPublicRobokassaSuccessRoute =
     path: '/api/public/robokassa/success',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicRobokassaResultRoute =
-  ApiPublicRobokassaResultRouteImport.update({
-    id: '/api/public/robokassa/result',
-    path: '/api/public/robokassa/result',
+const ApiPublicTelegramEnsureWebhookRoute =
+  ApiPublicTelegramEnsureWebhookRouteImport.update({
+    id: '/api/public/telegram/ensure-webhook',
+    path: '/api/public/telegram/ensure-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicRobokassaFailRoute = ApiPublicRobokassaFailRouteImport.update({
-  id: '/api/public/robokassa/fail',
-  path: '/api/public/robokassa/fail',
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicTelegramWebhookVipRoute =
+  ApiPublicTelegramWebhookVipRouteImport.update({
+    id: '/api/public/telegram/webhook-vip',
+    path: '/api/public/telegram/webhook-vip',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicVipCronRoute = ApiPublicVipCronRouteImport.update({
+  id: '/api/public/vip/cron',
+  path: '/api/public/vip/cron',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicImgSplatRoute = ApiPublicImgSplatRouteImport.update({
-  id: '/api/public/img/$',
-  path: '/api/public/img/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAdminFileSplatRoute = ApiAdminFileSplatRouteImport.update({
-  id: '/api/admin/file/$',
-  path: '/api/admin/file/$',
+const ApiPublicZernioWebhookRoute = ApiPublicZernioWebhookRouteImport.update({
+  id: '/api/public/zernio/webhook',
+  path: '/api/public/zernio/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -591,18 +591,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/operator': {
-      id: '/operator'
-      path: '/operator'
-      fullPath: '/operator'
-      preLoaderRoute: typeof OperatorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -612,11 +605,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operator': {
+      id: '/operator'
+      path: '/operator'
+      fullPath: '/operator'
+      preLoaderRoute: typeof OperatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -626,74 +626,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/operator/login': {
-      id: '/operator/login'
-      path: '/login'
-      fullPath: '/operator/login'
-      preLoaderRoute: typeof OperatorLoginRouteImport
-      parentRoute: typeof OperatorRoute
-    }
-    '/operator/_authed': {
-      id: '/operator/_authed'
-      path: ''
-      fullPath: '/operator'
-      preLoaderRoute: typeof OperatorAuthedRouteImport
-      parentRoute: typeof OperatorRoute
-    }
-    '/legal/$slug': {
-      id: '/legal/$slug'
-      path: '/legal/$slug'
-      fullPath: '/legal/$slug'
-      preLoaderRoute: typeof LegalSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/vip': {
-      id: '/admin/vip'
-      path: '/vip'
-      fullPath: '/admin/vip'
-      preLoaderRoute: typeof AdminVipRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/products': {
-      id: '/admin/products'
-      path: '/products'
-      fullPath: '/admin/products'
-      preLoaderRoute: typeof AdminProductsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/payment-methods': {
-      id: '/admin/payment-methods'
-      path: '/payment-methods'
-      fullPath: '/admin/payment-methods'
-      preLoaderRoute: typeof AdminPaymentMethodsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/orders': {
-      id: '/admin/orders'
-      path: '/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminOrdersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/instagram': {
-      id: '/admin/instagram'
-      path: '/instagram'
-      fullPath: '/admin/instagram'
-      preLoaderRoute: typeof AdminInstagramRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/categories': {
-      id: '/admin/categories'
-      path: '/categories'
-      fullPath: '/admin/categories'
-      preLoaderRoute: typeof AdminCategoriesRouteImport
+    '/admin/blocked': {
+      id: '/admin/blocked'
+      path: '/blocked'
+      fullPath: '/admin/blocked'
+      preLoaderRoute: typeof AdminBlockedRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/broadcast': {
@@ -703,130 +640,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBroadcastRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/blocked': {
-      id: '/admin/blocked'
-      path: '/blocked'
-      fullPath: '/admin/blocked'
-      preLoaderRoute: typeof AdminBlockedRouteImport
+    '/admin/categories': {
+      id: '/admin/categories'
+      path: '/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminCategoriesRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/operator/_authed/': {
-      id: '/operator/_authed/'
-      path: '/'
-      fullPath: '/operator/'
-      preLoaderRoute: typeof OperatorAuthedIndexRouteImport
-      parentRoute: typeof OperatorAuthedRoute
+    '/admin/instagram': {
+      id: '/admin/instagram'
+      path: '/instagram'
+      fullPath: '/admin/instagram'
+      preLoaderRoute: typeof AdminInstagramRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/payment-methods': {
+      id: '/admin/payment-methods'
+      path: '/payment-methods'
+      fullPath: '/admin/payment-methods'
+      preLoaderRoute: typeof AdminPaymentMethodsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/products': {
+      id: '/admin/products'
+      path: '/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/vip': {
+      id: '/admin/vip'
+      path: '/vip'
+      fullPath: '/admin/vip'
+      preLoaderRoute: typeof AdminVipRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/legal/$slug': {
+      id: '/legal/$slug'
+      path: '/legal/$slug'
+      fullPath: '/legal/$slug'
+      preLoaderRoute: typeof LegalSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operator/_authed': {
+      id: '/operator/_authed'
+      path: ''
+      fullPath: '/operator'
+      preLoaderRoute: typeof OperatorAuthedRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/operator/login': {
+      id: '/operator/login'
+      path: '/login'
+      fullPath: '/operator/login'
+      preLoaderRoute: typeof OperatorLoginRouteImport
+      parentRoute: typeof OperatorRoute
     }
     '/admin/vip/': {
       id: '/admin/vip/'
       path: '/'
       fullPath: '/admin/vip/'
       preLoaderRoute: typeof AdminVipIndexRouteImport
-      parentRoute: typeof AdminVipRoute
-    }
-    '/operator/_authed/onboard': {
-      id: '/operator/_authed/onboard'
-      path: '/onboard'
-      fullPath: '/operator/onboard'
-      preLoaderRoute: typeof OperatorAuthedOnboardRouteImport
-      parentRoute: typeof OperatorAuthedRoute
-    }
-    '/operator/_authed/journal': {
-      id: '/operator/_authed/journal'
-      path: '/journal'
-      fullPath: '/operator/journal'
-      preLoaderRoute: typeof OperatorAuthedJournalRouteImport
-      parentRoute: typeof OperatorAuthedRoute
-    }
-    '/operator/_authed/broadcast': {
-      id: '/operator/_authed/broadcast'
-      path: '/broadcast'
-      fullPath: '/operator/broadcast'
-      preLoaderRoute: typeof OperatorAuthedBroadcastRouteImport
-      parentRoute: typeof OperatorAuthedRoute
-    }
-    '/operator/_authed/$botId': {
-      id: '/operator/_authed/$botId'
-      path: '/$botId'
-      fullPath: '/operator/$botId'
-      preLoaderRoute: typeof OperatorAuthedBotIdRouteImport
-      parentRoute: typeof OperatorAuthedRoute
-    }
-    '/api/operator-cron/subscriptions': {
-      id: '/api/operator-cron/subscriptions'
-      path: '/api/operator-cron/subscriptions'
-      fullPath: '/api/operator-cron/subscriptions'
-      preLoaderRoute: typeof ApiOperatorCronSubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/set-webhook': {
-      id: '/api/internal/set-webhook'
-      path: '/api/internal/set-webhook'
-      fullPath: '/api/internal/set-webhook'
-      preLoaderRoute: typeof ApiInternalSetWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/reload': {
-      id: '/api/internal/reload'
-      path: '/api/internal/reload'
-      fullPath: '/api/internal/reload'
-      preLoaderRoute: typeof ApiInternalReloadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/notify-owner': {
-      id: '/api/internal/notify-owner'
-      path: '/api/internal/notify-owner'
-      fullPath: '/api/internal/notify-owner'
-      preLoaderRoute: typeof ApiInternalNotifyOwnerRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/health': {
-      id: '/api/internal/health'
-      path: '/api/internal/health'
-      fullPath: '/api/internal/health'
-      preLoaderRoute: typeof ApiInternalHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/internal/diagnostics': {
-      id: '/api/internal/diagnostics'
-      path: '/api/internal/diagnostics'
-      fullPath: '/api/internal/diagnostics'
-      preLoaderRoute: typeof ApiInternalDiagnosticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/ensure-webhook': {
-      id: '/api/cron/ensure-webhook'
-      path: '/api/cron/ensure-webhook'
-      fullPath: '/api/cron/ensure-webhook'
-      preLoaderRoute: typeof ApiCronEnsureWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/cron/broadcast': {
-      id: '/api/cron/broadcast'
-      path: '/api/cron/broadcast'
-      fullPath: '/api/cron/broadcast'
-      preLoaderRoute: typeof ApiCronBroadcastRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/upload': {
-      id: '/api/admin/upload'
-      path: '/api/admin/upload'
-      fullPath: '/api/admin/upload'
-      preLoaderRoute: typeof ApiAdminUploadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/vip/tariffs': {
-      id: '/admin/vip/tariffs'
-      path: '/tariffs'
-      fullPath: '/admin/vip/tariffs'
-      preLoaderRoute: typeof AdminVipTariffsRouteImport
-      parentRoute: typeof AdminVipRoute
-    }
-    '/admin/vip/subscribers': {
-      id: '/admin/vip/subscribers'
-      path: '/subscribers'
-      fullPath: '/admin/vip/subscribers'
-      preLoaderRoute: typeof AdminVipSubscribersRouteImport
       parentRoute: typeof AdminVipRoute
     }
     '/admin/vip/settings': {
@@ -836,60 +724,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminVipSettingsRouteImport
       parentRoute: typeof AdminVipRoute
     }
-    '/api/public/zernio/webhook': {
-      id: '/api/public/zernio/webhook'
-      path: '/api/public/zernio/webhook'
-      fullPath: '/api/public/zernio/webhook'
-      preLoaderRoute: typeof ApiPublicZernioWebhookRouteImport
+    '/admin/vip/subscribers': {
+      id: '/admin/vip/subscribers'
+      path: '/subscribers'
+      fullPath: '/admin/vip/subscribers'
+      preLoaderRoute: typeof AdminVipSubscribersRouteImport
+      parentRoute: typeof AdminVipRoute
+    }
+    '/admin/vip/tariffs': {
+      id: '/admin/vip/tariffs'
+      path: '/tariffs'
+      fullPath: '/admin/vip/tariffs'
+      preLoaderRoute: typeof AdminVipTariffsRouteImport
+      parentRoute: typeof AdminVipRoute
+    }
+    '/api/admin/upload': {
+      id: '/api/admin/upload'
+      path: '/api/admin/upload'
+      fullPath: '/api/admin/upload'
+      preLoaderRoute: typeof ApiAdminUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/vip/cron': {
-      id: '/api/public/vip/cron'
-      path: '/api/public/vip/cron'
-      fullPath: '/api/public/vip/cron'
-      preLoaderRoute: typeof ApiPublicVipCronRouteImport
+    '/api/cron/broadcast': {
+      id: '/api/cron/broadcast'
+      path: '/api/cron/broadcast'
+      fullPath: '/api/cron/broadcast'
+      preLoaderRoute: typeof ApiCronBroadcastRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram/webhook-vip': {
-      id: '/api/public/telegram/webhook-vip'
-      path: '/api/public/telegram/webhook-vip'
-      fullPath: '/api/public/telegram/webhook-vip'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookVipRouteImport
+    '/api/cron/ensure-webhook': {
+      id: '/api/cron/ensure-webhook'
+      path: '/api/cron/ensure-webhook'
+      fullPath: '/api/cron/ensure-webhook'
+      preLoaderRoute: typeof ApiCronEnsureWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram/webhook': {
-      id: '/api/public/telegram/webhook'
-      path: '/api/public/telegram/webhook'
-      fullPath: '/api/public/telegram/webhook'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+    '/api/internal/diagnostics': {
+      id: '/api/internal/diagnostics'
+      path: '/api/internal/diagnostics'
+      fullPath: '/api/internal/diagnostics'
+      preLoaderRoute: typeof ApiInternalDiagnosticsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram/ensure-webhook': {
-      id: '/api/public/telegram/ensure-webhook'
-      path: '/api/public/telegram/ensure-webhook'
-      fullPath: '/api/public/telegram/ensure-webhook'
-      preLoaderRoute: typeof ApiPublicTelegramEnsureWebhookRouteImport
+    '/api/internal/health': {
+      id: '/api/internal/health'
+      path: '/api/internal/health'
+      fullPath: '/api/internal/health'
+      preLoaderRoute: typeof ApiInternalHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/robokassa/success': {
-      id: '/api/public/robokassa/success'
-      path: '/api/public/robokassa/success'
-      fullPath: '/api/public/robokassa/success'
-      preLoaderRoute: typeof ApiPublicRobokassaSuccessRouteImport
+    '/api/internal/notify-owner': {
+      id: '/api/internal/notify-owner'
+      path: '/api/internal/notify-owner'
+      fullPath: '/api/internal/notify-owner'
+      preLoaderRoute: typeof ApiInternalNotifyOwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/robokassa/result': {
-      id: '/api/public/robokassa/result'
-      path: '/api/public/robokassa/result'
-      fullPath: '/api/public/robokassa/result'
-      preLoaderRoute: typeof ApiPublicRobokassaResultRouteImport
+    '/api/internal/reload': {
+      id: '/api/internal/reload'
+      path: '/api/internal/reload'
+      fullPath: '/api/internal/reload'
+      preLoaderRoute: typeof ApiInternalReloadRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/robokassa/fail': {
-      id: '/api/public/robokassa/fail'
-      path: '/api/public/robokassa/fail'
-      fullPath: '/api/public/robokassa/fail'
-      preLoaderRoute: typeof ApiPublicRobokassaFailRouteImport
+    '/api/internal/set-webhook': {
+      id: '/api/internal/set-webhook'
+      path: '/api/internal/set-webhook'
+      fullPath: '/api/internal/set-webhook'
+      preLoaderRoute: typeof ApiInternalSetWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/operator-cron/subscriptions': {
+      id: '/api/operator-cron/subscriptions'
+      path: '/api/operator-cron/subscriptions'
+      fullPath: '/api/operator-cron/subscriptions'
+      preLoaderRoute: typeof ApiOperatorCronSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operator/_authed/': {
+      id: '/operator/_authed/'
+      path: '/'
+      fullPath: '/operator/'
+      preLoaderRoute: typeof OperatorAuthedIndexRouteImport
+      parentRoute: typeof OperatorAuthedRoute
+    }
+    '/operator/_authed/$botId': {
+      id: '/operator/_authed/$botId'
+      path: '/$botId'
+      fullPath: '/operator/$botId'
+      preLoaderRoute: typeof OperatorAuthedBotIdRouteImport
+      parentRoute: typeof OperatorAuthedRoute
+    }
+    '/operator/_authed/broadcast': {
+      id: '/operator/_authed/broadcast'
+      path: '/broadcast'
+      fullPath: '/operator/broadcast'
+      preLoaderRoute: typeof OperatorAuthedBroadcastRouteImport
+      parentRoute: typeof OperatorAuthedRoute
+    }
+    '/operator/_authed/journal': {
+      id: '/operator/_authed/journal'
+      path: '/journal'
+      fullPath: '/operator/journal'
+      preLoaderRoute: typeof OperatorAuthedJournalRouteImport
+      parentRoute: typeof OperatorAuthedRoute
+    }
+    '/operator/_authed/onboard': {
+      id: '/operator/_authed/onboard'
+      path: '/onboard'
+      fullPath: '/operator/onboard'
+      preLoaderRoute: typeof OperatorAuthedOnboardRouteImport
+      parentRoute: typeof OperatorAuthedRoute
+    }
+    '/api/admin/file/$': {
+      id: '/api/admin/file/$'
+      path: '/api/admin/file/$'
+      fullPath: '/api/admin/file/$'
+      preLoaderRoute: typeof ApiAdminFileSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/img/$': {
@@ -899,11 +850,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicImgSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/file/$': {
-      id: '/api/admin/file/$'
-      path: '/api/admin/file/$'
-      fullPath: '/api/admin/file/$'
-      preLoaderRoute: typeof ApiAdminFileSplatRouteImport
+    '/api/public/robokassa/fail': {
+      id: '/api/public/robokassa/fail'
+      path: '/api/public/robokassa/fail'
+      fullPath: '/api/public/robokassa/fail'
+      preLoaderRoute: typeof ApiPublicRobokassaFailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/robokassa/result': {
+      id: '/api/public/robokassa/result'
+      path: '/api/public/robokassa/result'
+      fullPath: '/api/public/robokassa/result'
+      preLoaderRoute: typeof ApiPublicRobokassaResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/robokassa/success': {
+      id: '/api/public/robokassa/success'
+      path: '/api/public/robokassa/success'
+      fullPath: '/api/public/robokassa/success'
+      preLoaderRoute: typeof ApiPublicRobokassaSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/ensure-webhook': {
+      id: '/api/public/telegram/ensure-webhook'
+      path: '/api/public/telegram/ensure-webhook'
+      fullPath: '/api/public/telegram/ensure-webhook'
+      preLoaderRoute: typeof ApiPublicTelegramEnsureWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/webhook-vip': {
+      id: '/api/public/telegram/webhook-vip'
+      path: '/api/public/telegram/webhook-vip'
+      fullPath: '/api/public/telegram/webhook-vip'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookVipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/vip/cron': {
+      id: '/api/public/vip/cron'
+      path: '/api/public/vip/cron'
+      fullPath: '/api/public/vip/cron'
+      preLoaderRoute: typeof ApiPublicVipCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/zernio/webhook': {
+      id: '/api/public/zernio/webhook'
+      path: '/api/public/zernio/webhook'
+      fullPath: '/api/public/zernio/webhook'
+      preLoaderRoute: typeof ApiPublicZernioWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
